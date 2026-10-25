@@ -15,6 +15,9 @@ out/
 .env.*
 !.env.example
 *.local
+AUTHORITY_SECRETS.md
+*SECRETS.md
+*secrets.md
 
 # TypeScript & Vite Cache
 *.tsbuildinfo

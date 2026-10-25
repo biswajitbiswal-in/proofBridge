@@ -21,6 +21,7 @@ import {
   Lightbulb,
   ListFilter,
   LogOut,
+  Mail,
   Menu,
   Mic,
   Plus,
@@ -42,25 +43,36 @@ import {
   supabase,
 } from './lib/supabase';
 import {
+  adminAssignUserRole,
   assignIssueToStaff,
+  authenticateLocalUser,
   cancelIssueWithReason,
   clearLocalSession,
   createIssue,
+  deleteUserAccountByAuthority,
   getCachedWorkspaceSnapshot,
   getIssueDetails,
   getOrCreateProfile,
   getSavedLocalSession,
+  HIGHER_AUTHORITY_BACKUP_PIN,
+  HIGHER_AUTHORITY_DEFAULT_PASSWORD,
+  HIGHER_AUTHORITY_EMAIL,
+  isHigherAuthority,
   linkRecurringIssue,
   listIssues,
   listProfiles,
   listRecentEvents,
+  provisionOfficialAccount,
   recordVerificationDecision,
-  signInOrCreateLocalUser,
+  registerReporterLocalUser,
+  resetUserPasswordByAuthority,
+  saveActiveUserSession,
+  sendAuthorityOtp,
   startMaintenanceWork,
   submitRepairForVerification,
   triageIssueUnderReview,
   updateMyProfile,
-  updateMyRole,
+  verifyAuthorityOtp,
 } from './services/proofBridgeService';
 import {
   CAMPUS_BUILDINGS,
@@ -82,11 +94,12 @@ import { IssueDetailDrawer } from './components/IssueDetailDrawer';
 import {
   ActivityTimelineView,
   AnalyticsView,
+  AuthorityConsoleView,
   EvidenceReviewsView,
   SettingsView,
 } from './components/SecondaryViews';
 
-type AppStage = 'landing' | 'auth' | 'app';
+type AppStage = 'landing' | 'auth' | 'authority-login' | 'app';
 
 type NavTab =
   | 'dashboard'
@@ -95,6 +108,7 @@ type NavTab =
   | 'my-reports'
   | 'assignments'
   | 'reviews'
+  | 'authority'
   | 'timeline'
   | 'analytics'
   | 'settings';
@@ -109,6 +123,10 @@ const PAGE_TITLES: Record<NavTab, { eyebrow: string; title: string }> = {
   'my-reports': { eyebrow: 'YOUR CONTRIBUTION', title: 'My Reports' },
   assignments: { eyebrow: 'FIELD OPERATIONS', title: 'Assignments' },
   reviews: { eyebrow: 'VERIFICATION QUEUE', title: 'Evidence & Reviews' },
+  authority: {
+    eyebrow: 'SYSTEM AUTHORITY',
+    title: 'Higher Authority Console',
+  },
   timeline: { eyebrow: 'AUDIT TRAIL', title: 'Activity Timeline' },
   analytics: { eyebrow: 'THE IMPACT SO FAR', title: 'Analytics' },
   settings: { eyebrow: 'WORKSPACE', title: 'Settings' },
@@ -198,6 +216,20 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+
+  // 2-Step OTP Authentication for Higher Authority
+  const [authorityStep, setAuthorityStep] = useState<'credentials' | 'otp'>('credentials');
+  const [authorityOtp, setAuthorityOtp] = useState('');
+  const [authorityPendingUser, setAuthorityPendingUser] = useState<UserProfile | null>(null);
+  const [authorityResendCooldown, setAuthorityResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (authorityResendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setAuthorityResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [authorityResendCooldown]);
 
   // Explore Issues filters, sorting & pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -320,8 +352,7 @@ export default function App() {
             const p = await getOrCreateProfile(
               session.user.id,
               session.user.email || 'user@campus.edu',
-              session.user.user_metadata?.full_name,
-              session.user.user_metadata?.role
+              session.user.user_metadata?.full_name
             );
             setProfile(p);
           } catch {
@@ -340,8 +371,7 @@ export default function App() {
           const p = await getOrCreateProfile(
             session.user.id,
             session.user.email || 'user@campus.edu',
-            session.user.user_metadata?.full_name,
-            session.user.user_metadata?.role
+            session.user.user_metadata?.full_name
           );
           setProfile(p);
           await refreshAllData();
@@ -581,89 +611,238 @@ export default function App() {
 
     try {
       if (authMode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
+        // Public registration ONLY creates Reporter accounts with verified password
+        const createdUser = registerReporterLocalUser({
+          fullName: cleanName,
           email: cleanEmail,
           password,
-          options: {
-            data: { full_name: cleanName, role: selectedRole },
-          },
         });
-        if (error) throw error;
-        if (data.user) {
-          const userProfile = await getOrCreateProfile(
-            data.user.id,
-            cleanEmail,
-            cleanName,
-            selectedRole
-          );
-          setProfile(userProfile);
-          await refreshAllData();
-          setActiveTab(defaultTabForRole(userProfile.role));
-          setStage('app');
-          notify(
-            'success',
-            `Welcome, ${userProfile.fullName} (${ROLE_DESCRIPTIONS[userProfile.role].label}).`
-          );
-          return;
+
+        if (await isSupabaseSchemaReady()) {
+          try {
+            await supabase.auth.signUp({
+              email: cleanEmail,
+              password,
+              options: {
+                data: { full_name: cleanName, role: 'reporter' },
+              },
+            });
+          } catch {
+            setForceLocalMode(true);
+          }
+        }
+
+        setSelectedRole('reporter');
+        setProfile(createdUser);
+        await refreshAllData();
+        setActiveTab(defaultTabForRole(createdUser.role));
+        setStage('app');
+        notify(
+          'success',
+          `Welcome, ${createdUser.fullName} (${ROLE_DESCRIPTIONS[createdUser.role].label}).`
+        );
+        return;
+      }
+
+      // If this is the Higher Authority account attempting sign-in from the regular portal, seamlessly transition to 2-step portal
+      if (
+        cleanEmail === HIGHER_AUTHORITY_EMAIL ||
+        cleanEmail === 'biswajitbiswal.in@gmail.com'
+      ) {
+        setEmail(cleanEmail);
+        setPassword(password);
+        setStage('authority-login');
+        setAuthorityStep('credentials');
+        notify('success', 'Higher Authority account detected. Please complete secure 2-Step verification.');
+        return;
+      }
+
+      // Sign-in mode: strictly authenticate Email ID + Password and verify portal role
+      let signedInUser: UserProfile | null = null;
+
+      if (await isSupabaseSchemaReady()) {
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (error) throw error;
+          if (data.user) {
+            signedInUser = await getOrCreateProfile(
+              data.user.id,
+              cleanEmail,
+              undefined
+            );
+          }
+        } catch {
+          setForceLocalMode(true);
+          signedInUser = authenticateLocalUser(cleanEmail, password);
         }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        if (error) throw error;
-        if (data.user) {
-          const userProfile = await getOrCreateProfile(
-            data.user.id,
-            cleanEmail,
-            undefined,
-            selectedRole
-          );
-          setProfile(userProfile);
-          await refreshAllData();
-          setActiveTab(defaultTabForRole(userProfile.role));
-          setStage('app');
+        setForceLocalMode(true);
+        signedInUser = authenticateLocalUser(cleanEmail, password);
+      }
+
+      if (signedInUser) {
+        if (signedInUser.role !== selectedRole) {
+          clearLocalSession();
+          supabase.auth.signOut();
+          setProfile(null);
           notify(
-            'success',
-            `Signed in as ${userProfile.fullName} (${ROLE_DESCRIPTIONS[userProfile.role].label}).`
+            'error',
+            `Access denied: "${cleanEmail}" is registered as a ${ROLE_DESCRIPTIONS[signedInUser.role].label}, not ${ROLE_DESCRIPTIONS[selectedRole].label}.`
           );
           return;
         }
+
+        saveActiveUserSession(signedInUser);
+        setProfile(signedInUser);
+        setActiveTab(
+          isHigherAuthority(signedInUser)
+            ? 'authority'
+            : defaultTabForRole(signedInUser.role)
+        );
+        setStage('app');
+        notify(
+          'success',
+          `Signed in as ${signedInUser.fullName} (${
+            isHigherAuthority(signedInUser)
+              ? 'Higher Authority / System Administrator'
+              : ROLE_DESCRIPTIONS[signedInUser.role].label
+          }).`
+        );
+        refreshAllData().catch(() => {});
       }
-    } catch {
-      // Seamless local persistence when Supabase auth is offline or unconfirmed
-      setForceLocalMode(true);
-      const localUser = signInOrCreateLocalUser(
-        cleanEmail,
-        authMode === 'signup' ? cleanName : undefined,
-        selectedRole
-      );
-      setProfile(localUser);
-      await refreshAllData();
-      setActiveTab(defaultTabForRole(localUser.role));
-      setStage('app');
+    } catch (err) {
       notify(
-        'success',
-        `Signed in as ${localUser.fullName} (${ROLE_DESCRIPTIONS[localUser.role].label}).`
+        'error',
+        err instanceof Error
+          ? err.message
+          : 'Authentication failed. Please check your email and password.'
       );
     } finally {
       setAuthBusy(false);
     }
   }
 
-  async function handleQuickRoleSignIn(role: UserRole) {
-    const preset = ROLE_DESCRIPTIONS[role];
-    setForceLocalMode(true);
-    const localUser = signInOrCreateLocalUser(
-      preset.defaultEmail,
-      preset.defaultName,
-      role
-    );
-    setProfile(localUser);
-    await refreshAllData();
-    setActiveTab(defaultTabForRole(role));
-    setStage('app');
-    notify('success', `Signed in as ${localUser.fullName} (${preset.label}).`);
+  async function handleAuthorityCredentialsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthBusy(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password;
+
+    if (!cleanEmail) {
+      setAuthBusy(false);
+      notify('error', 'Please enter your administrator email ID.');
+      return;
+    }
+    if (!cleanPassword) {
+      setAuthBusy(false);
+      notify('error', 'Please enter your master password.');
+      return;
+    }
+
+    try {
+      const signedInUser = authenticateLocalUser(cleanEmail, cleanPassword);
+      if (signedInUser.role !== 'admin') {
+        clearLocalSession();
+        setProfile(null);
+        notify(
+          'error',
+          'Access denied: Only the Higher Authority / System Administrator can sign in to this console.'
+        );
+        return;
+      }
+
+      setAuthorityPendingUser(signedInUser);
+      setAuthorityStep('otp');
+      setAuthorityOtp('');
+      setAuthorityResendCooldown(60);
+
+      const otpRes = await sendAuthorityOtp(cleanEmail);
+      if (otpRes.emailProviderError) {
+        notify('error', `Email notification: ${otpRes.emailProviderError}.`);
+      } else {
+        notify('success', `6-digit OTP code dispatched to ${cleanEmail}. Check your inbox.`);
+      }
+    } catch (err) {
+      notify(
+        'error',
+        err instanceof Error
+          ? err.message
+          : 'Authority authentication failed. Please check your credentials.'
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleResendAuthorityOtp() {
+    const targetEmail = authorityPendingUser?.email || email.trim().toLowerCase();
+    if (!targetEmail || authorityResendCooldown > 0) return;
+    setAuthBusy(true);
+    try {
+      await sendAuthorityOtp(targetEmail);
+      setAuthorityResendCooldown(60);
+      notify('success', `A fresh 6-digit OTP code has been dispatched to ${targetEmail}.`);
+    } catch (err) {
+      notify(
+        'error',
+        err instanceof Error ? err.message : 'Failed to resend OTP.'
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleAuthorityOtpSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthBusy(true);
+
+    try {
+      const cleanEmail =
+        authorityPendingUser?.email ||
+        email.trim().toLowerCase();
+
+      if (!cleanEmail) {
+        throw new Error('Session expired. Please enter your credentials again.');
+      }
+
+      const codeToVerify = authorityOtp.trim();
+      if (!codeToVerify || codeToVerify.length !== 6) {
+        throw new Error('Please enter the 6-digit verification code.');
+      }
+
+      await verifyAuthorityOtp(cleanEmail, codeToVerify);
+
+      const verifiedUser =
+        authorityPendingUser ||
+        authenticateLocalUser(cleanEmail, password);
+
+      saveActiveUserSession(verifiedUser);
+      setProfile(verifiedUser);
+      setActiveTab('authority');
+      setStage('app');
+      setAuthorityStep('credentials');
+      setAuthorityPendingUser(null);
+      setAuthorityOtp('');
+
+      notify(
+        'success',
+        `2-Step verification successful. Welcome, ${verifiedUser.fullName} (Higher Authority).`
+      );
+
+      refreshAllData().catch(() => {});
+    } catch (err) {
+      notify(
+        'error',
+        err instanceof Error
+          ? err.message
+          : 'Invalid or expired verification code. Please check your email or confidential master code.'
+      );
+    } finally {
+      setAuthBusy(false);
+    }
   }
 
   function handleSignOut() {
@@ -677,28 +856,105 @@ export default function App() {
     notify('success', 'Signed out of ProofBridge.');
   }
 
-  async function handleRoleSwitch(newRole: UserRole) {
-    if (!profile) return;
+  async function handleAdminAssignRole(targetUserId: string, newRole: UserRole) {
+    if (!profile || profile.role !== 'admin') {
+      notify('error', 'Only an Admin / Reviewer can change user roles.');
+      return;
+    }
     try {
-      const updated = await updateMyRole(profile.id, newRole);
-      setProfile(updated);
-      if (
-        newRole === 'reporter' &&
-        ['assignments', 'reviews', 'analytics'].includes(activeTab)
-      ) {
-        setActiveTab('dashboard');
-      } else if (
-        newRole === 'maintenance' &&
-        ['reviews', 'analytics'].includes(activeTab)
-      ) {
-        setActiveTab('assignments');
-      }
+      const updatedList = await adminAssignUserRole({
+        actor: profile,
+        targetUserId,
+        newRole,
+      });
+      setAllProfiles(updatedList);
+      const targetUser = updatedList.find((u) => u.id === targetUserId);
       await refreshAllData();
-      notify('success', `Account role updated to ${ROLE_DESCRIPTIONS[newRole].label}.`);
+      notify(
+        'success',
+        `Updated ${targetUser?.fullName || 'user'}'s role to ${ROLE_DESCRIPTIONS[newRole].label}.`
+      );
     } catch (err) {
       notify(
         'error',
-        err instanceof Error ? err.message : 'Could not update role.'
+        err instanceof Error ? err.message : 'Could not update user role.'
+      );
+    }
+  }
+
+  async function handleProvisionOfficialAccount(params: {
+    fullName: string;
+    email: string;
+    password: string;
+    role: 'admin' | 'maintenance';
+    phoneNumber?: string;
+  }) {
+    if (!profile || profile.role !== 'admin') {
+      notify('error', 'Unauthorized: Only Higher Authority / Admin can create Staff or Admin accounts.');
+      return;
+    }
+    try {
+      const updatedList = await provisionOfficialAccount({
+        actor: profile,
+        ...params,
+      });
+      setAllProfiles(updatedList);
+      await refreshAllData();
+      notify(
+        'success',
+        `Provisioned ${ROLE_DESCRIPTIONS[params.role].label} account for ${params.fullName} (${params.email}).`
+      );
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Failed to provision official account.';
+      notify('error', msg);
+      throw err;
+    }
+  }
+
+  async function handleResetUserPassword(
+    targetUserId: string,
+    newPassword: string
+  ) {
+    if (!profile || profile.role !== 'admin') {
+      notify('error', 'Unauthorized: Only Higher Authority / Admin can reset passwords.');
+      return;
+    }
+    try {
+      await resetUserPasswordByAuthority({
+        actor: profile,
+        targetUserId,
+        newPassword,
+      });
+      const targetUser = allProfiles.find((u) => u.id === targetUserId);
+      notify(
+        'success',
+        `Password updated for ${targetUser?.email || 'account'}.`
+      );
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : 'Could not reset password.';
+      notify('error', msg);
+      throw err;
+    }
+  }
+
+  async function handleDeleteUserAccount(targetUserId: string) {
+    if (!profile || profile.role !== 'admin') return;
+    try {
+      const updatedList = await deleteUserAccountByAuthority({
+        actor: profile,
+        targetUserId,
+      });
+      setAllProfiles(updatedList);
+      await refreshAllData();
+      notify('success', 'Account removed.');
+    } catch (err) {
+      notify(
+        'error',
+        err instanceof Error ? err.message : 'Could not remove account.'
       );
     }
   }
@@ -1065,6 +1321,20 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
+                      setEmail('');
+                      setPassword('');
+                      setStage('authority-login');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="px-3.5 py-2.5 rounded-control border border-[#FF8A32]/40 hover:border-[#FF8A32] text-[#FF8A32] hover:bg-[#FF8A32]/10 text-xs font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Authority Portal
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
                       setPendingTabAfterAuth('dashboard');
                       setAuthMode('signin');
                       setStage('auth');
@@ -1079,6 +1349,7 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       setPendingTabAfterAuth('dashboard');
+                      setSelectedRole('reporter');
                       setAuthMode('signup');
                       setStage('auth');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1460,9 +1731,211 @@ export default function App() {
               >
                 Admin / Reviewer Login
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('');
+                  setPassword('');
+                  setStage('authority-login');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="text-[#FF8A32] hover:text-[#FF9E54] font-medium flex items-center gap-1.5 transition"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                System Authority Console
+              </button>
             </div>
           </div>
         </footer>
+      </div>
+    );
+  }
+
+  // ===========================================================================
+  // STAGE 2A: DEDICATED HIGHER AUTHORITY / SYSTEM ADMINISTRATOR LOGIN
+  // ===========================================================================
+  if (stage === 'authority-login') {
+    return (
+      <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10">
+        {toast && (
+          <div
+            className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 ${
+              toast.type === 'error'
+                ? 'border-[#F87171]/40 text-[#F87171]'
+                : 'border-[#2B303A] text-[#F5F5F5]'
+            }`}
+          >
+            {toast.text}
+          </div>
+        )}
+
+        {/* Top Bar */}
+        <div className="max-w-[1040px] w-full mx-auto flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setStage('landing')}
+            className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] flex items-center gap-2 transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Public Site
+          </button>
+
+          <span className="pb-eyebrow text-[#FF8A32]">
+            RESTRICTED SYSTEM AUTHORITY PORTAL
+          </span>
+        </div>
+
+        {/* Dedicated System Administrator Login Card */}
+        <div className="max-w-md w-full mx-auto my-auto py-10 space-y-6">
+          <div className="bg-[#1C2028] border border-[#FF8A32]/40 rounded-panel p-8 space-y-6">
+            <div className="flex items-center gap-3 border-b border-[#2B303A] pb-5">
+              <ProofBridgeMark className="w-10 h-10 shrink-0" />
+              <div>
+                <p className="pb-eyebrow text-[#FF8A32]">HIGHER AUTHORITY 2-STEP</p>
+                <h1 className="font-display font-bold text-xl text-[#F5F5F5] tracking-tight">
+                  {authorityStep === 'credentials'
+                    ? 'System Administrator Login'
+                    : '2-Step OTP Verification'}
+                </h1>
+              </div>
+            </div>
+
+            {authorityStep === 'credentials' ? (
+              <>
+                <p className="text-xs text-[#A1A1AA] leading-relaxed">
+                  Higher Authority / Master Administrator Portal. Authenticate using your administrator credentials and 2-Step OTP verification.
+                </p>
+
+                <form onSubmit={handleAuthorityCredentialsSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#A1A1AA] mb-1.5">
+                      Administrator Email ID
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="biswajitbiswal.in@gmail.com"
+                      className="w-full rounded-control bg-[#111318] border border-[#2B303A] px-3.5 py-2.5 text-sm text-[#F5F5F5] placeholder:text-[#A1A1AA]/50 focus:border-[#FF8A32]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#A1A1AA] mb-1.5">
+                      Master Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-control bg-[#111318] border border-[#2B303A] px-3.5 py-2.5 text-sm text-[#F5F5F5] placeholder:text-[#A1A1AA]/50 focus:border-[#FF8A32]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authBusy || !email.trim() || !password}
+                    className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition flex items-center justify-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {authBusy
+                      ? 'Verifying Credentials...'
+                      : 'Verify Credentials & Dispatch OTP →'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div className="p-4 rounded-control bg-[#111318] border border-[#2B303A] space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#F5F5F5]">
+                    <Mail className="w-4 h-4 text-[#FF8A32]" />
+                    <span>Check your Gmail Inbox</span>
+                  </div>
+                  <p className="text-xs text-[#A1A1AA] leading-relaxed">
+                    A 6-digit OTP verification code has been dispatched to{' '}
+                    <span className="text-[#FF8A32] font-semibold">{authorityPendingUser?.email || email}</span>.
+                    Please check your Gmail inbox and enter the 6-digit code below.
+                  </p>
+                </div>
+
+                <form onSubmit={handleAuthorityOtpSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#A1A1AA] mb-1.5">
+                      6-Digit OTP Verification Code
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                      inputMode="numeric"
+                      value={authorityOtp}
+                      onChange={(e) => setAuthorityOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="• • • • • •"
+                      className="w-full text-center tracking-[0.5em] font-mono text-xl font-bold rounded-control bg-[#111318] border border-[#2B303A] px-3.5 py-3 text-[#F5F5F5] placeholder:text-[#A1A1AA]/40 focus:border-[#FF8A32]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      disabled={authBusy || authorityResendCooldown > 0}
+                      onClick={handleResendAuthorityOtp}
+                      className="text-[#FF8A32] hover:underline font-medium disabled:opacity-50"
+                    >
+                      {authorityResendCooldown > 0
+                        ? `Resend OTP in ${authorityResendCooldown}s`
+                        : 'Resend OTP to Gmail'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthorityStep('credentials');
+                        setAuthorityOtp('');
+                      }}
+                      className="text-[#A1A1AA] hover:text-[#F5F5F5]"
+                    >
+                      Change Credentials
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={authBusy || authorityOtp.length !== 6}
+                    className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition"
+                  >
+                    {authBusy
+                      ? 'Verifying Code...'
+                      : 'Verify & Open Authority Console ↗'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            <div className="pt-2 border-t border-[#2B303A] flex items-center justify-between text-xs text-[#A1A1AA]">
+              <span>Regular user or staff member?</span>
+              <button
+                type="button"
+                onClick={() => setStage('auth')}
+                className="text-[#FF8A32] hover:underline font-medium"
+              >
+                Go to Standard Login →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-[1040px] w-full mx-auto text-xs text-[#A1A1AA] flex items-center justify-between">
+          <span>ProofBridge — System Authority & Credential Management</span>
+          <span>Authorized Access Only</span>
+        </div>
       </div>
     );
   }
@@ -1501,17 +1974,19 @@ export default function App() {
 
         {/* Center Split Editorial Auth */}
         <div className="max-w-[1160px] w-full mx-auto my-auto py-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Editorial Column + Role Explanation */}
+          {/* Left Editorial Column + Role Separation Policy */}
           <div className="lg:col-span-6 space-y-8">
             <div className="space-y-4">
-              <p className="pb-eyebrow">YOUR COMMUNITY. YOUR SAY.</p>
+              <p className="pb-eyebrow">STRICT ROLE SEPARATION</p>
               <h1 className="pb-display-hero text-5xl sm:text-6xl text-[#F5F5F5]">
                 Small issues.
                 <br />
                 <span className="text-[#FF8A32]">BIG CHANGE.</span>
               </h1>
               <p className="text-sm text-[#A1A1AA] max-w-md leading-relaxed">
-                Select your account type to access the Reporter, Maintenance Staff, or Admin Reviewer workspace.
+                {authMode === 'signup'
+                  ? 'Public account registration creates a Citizen / Reporter account so you can report and track issues. Staff and Admin roles are strictly provisioned by an Administrator.'
+                  : 'Sign in with your registered account. Reporters, Maintenance Staff, and Admin Reviewers each have strictly separated permissions.'}
               </p>
             </div>
 
@@ -1520,12 +1995,22 @@ export default function App() {
               {(['reporter', 'maintenance', 'admin'] as UserRole[]).map(
                 (roleKey, idx) => {
                   const info = ROLE_DESCRIPTIONS[roleKey];
-                  const active = selectedRole === roleKey;
+                  const active =
+                    authMode === 'signup'
+                      ? roleKey === 'reporter'
+                      : selectedRole === roleKey;
+                  const isRestricted = roleKey !== 'reporter';
                   return (
                     <div
                       key={roleKey}
-                      onClick={() => setSelectedRole(roleKey)}
-                      className={`py-4 px-3 -mx-3 rounded-control cursor-pointer transition flex items-center justify-between gap-4 ${
+                      onClick={() => {
+                        if (authMode === 'signin') {
+                          setSelectedRole(roleKey);
+                        }
+                      }}
+                      className={`py-4 px-3 -mx-3 rounded-control transition flex items-center justify-between gap-4 ${
+                        authMode === 'signin' ? 'cursor-pointer' : 'cursor-default'
+                      } ${
                         active ? 'bg-[#1C2028]' : 'hover:bg-[#1C2028]/50'
                       }`}
                     >
@@ -1546,16 +2031,15 @@ export default function App() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuickRoleSignIn(roleKey);
-                        }}
-                        className="px-3 py-1.5 rounded-control bg-[#111318] hover:bg-[#FF8A32] hover:text-[#111318] border border-[#2B303A] text-xs font-medium text-[#F5F5F5] shrink-0 transition"
-                      >
-                        Sign in as {info.label.split(' ')[0]} →
-                      </button>
+                      {isRestricted ? (
+                        <span className="px-2.5 py-1 rounded bg-[#111318] border border-[#2B303A] text-[10px] font-semibold uppercase tracking-wider text-[#A1A1AA] shrink-0">
+                          Authority Provisioned
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded bg-[#FF8A32]/15 border border-[#FF8A32]/30 text-[10px] font-semibold uppercase tracking-wider text-[#FF8A32] shrink-0">
+                          Public Sign-Up
+                        </span>
+                      )}
                     </div>
                   );
                 }
@@ -1572,10 +2056,14 @@ export default function App() {
                   <h2 className="font-display font-bold text-lg text-[#F5F5F5] tracking-tight">
                     {authMode === 'signin'
                       ? 'Log in to ProofBridge'
-                      : 'Create an account'}
+                      : 'Create a Reporter Account'}
                   </h2>
                   <p className="text-[#A1A1AA] text-xs">
-                    Portal: {ROLE_DESCRIPTIONS[selectedRole].label} • Destination:{' '}
+                    Portal:{' '}
+                    {authMode === 'signup'
+                      ? ROLE_DESCRIPTIONS.reporter.label
+                      : ROLE_DESCRIPTIONS[selectedRole].label}{' '}
+                    • Destination:{' '}
                     <span className="text-[#FF8A32] font-medium">
                       {PAGE_TITLES[pendingTabAfterAuth].title}
                     </span>
@@ -1599,7 +2087,10 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => setAuthMode('signup')}
+                onClick={() => {
+                  setAuthMode('signup');
+                  setSelectedRole('reporter');
+                }}
                 className={`py-2 text-xs font-medium rounded-[4px] transition ${
                   authMode === 'signup'
                     ? 'bg-[#1C2028] text-[#F5F5F5]'
@@ -1610,42 +2101,58 @@ export default function App() {
               </button>
             </div>
 
-            {/* Account Type Selector */}
-            <div>
-              <label className="block text-xs font-medium text-[#A1A1AA] mb-2">
-                Select account type
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['reporter', 'maintenance', 'admin'] as UserRole[]).map(
-                  (roleKey) => {
-                    const active = selectedRole === roleKey;
-                    return (
-                      <button
-                        key={roleKey}
-                        type="button"
-                        onClick={() => setSelectedRole(roleKey)}
-                        className={`py-2.5 px-2.5 rounded-control border text-left transition ${
-                          active
-                            ? 'bg-[#111318] border-[#FF8A32] text-[#FF8A32]'
-                            : 'bg-[#111318] border-[#2B303A] text-[#A1A1AA] hover:text-[#F5F5F5]'
-                        }`}
-                      >
-                        <span className="font-display text-xs font-bold block">
-                          {roleKey === 'admin'
-                            ? 'Admin'
-                            : roleKey === 'maintenance'
-                            ? 'Staff'
-                            : 'Reporter'}
-                        </span>
-                        <span className="text-[10px] text-[#A1A1AA] block truncate">
-                          {ROLE_DESCRIPTIONS[roleKey].short}
-                        </span>
-                      </button>
-                    );
-                  }
-                )}
+            {/* Role Portal Selector (Log in only) vs Locked Reporter Notice (Sign up) */}
+            {authMode === 'signin' ? (
+              <div>
+                <label className="block text-xs font-medium text-[#A1A1AA] mb-2">
+                  Select login portal
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['reporter', 'maintenance', 'admin'] as UserRole[]).map(
+                    (roleKey) => {
+                      const active = selectedRole === roleKey;
+                      return (
+                        <button
+                          key={roleKey}
+                          type="button"
+                          onClick={() => setSelectedRole(roleKey)}
+                          className={`py-2.5 px-2.5 rounded-control border text-left transition ${
+                            active
+                              ? 'bg-[#111318] border-[#FF8A32] text-[#FF8A32]'
+                              : 'bg-[#111318] border-[#2B303A] text-[#A1A1AA] hover:text-[#F5F5F5]'
+                          }`}
+                        >
+                          <span className="font-display text-xs font-bold block">
+                            {roleKey === 'admin'
+                              ? 'Admin'
+                              : roleKey === 'maintenance'
+                              ? 'Staff'
+                              : 'Reporter'}
+                          </span>
+                          <span className="text-[10px] text-[#A1A1AA] block truncate">
+                            {ROLE_DESCRIPTIONS[roleKey].short}
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3.5 rounded-control bg-[#111318] border border-[#2B303A] flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-[#F5F5F5]">
+                    Account Role: Reporter (Citizen / Student / Resident)
+                  </p>
+                  <p className="text-[11px] text-[#A1A1AA] leading-relaxed">
+                    New accounts are strictly registered as Reporters. Admin and Maintenance Staff accounts cannot be self-created.
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-[#FF8A32]/15 text-[#FF8A32] text-[10px] font-semibold shrink-0">
+                  Reporter Only
+                </span>
+              </div>
+            )}
 
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               {authMode === 'signup' && (
@@ -1675,7 +2182,7 @@ export default function App() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={ROLE_DESCRIPTIONS[selectedRole].defaultEmail}
+                  placeholder="name@organization.com"
                   className="w-full rounded-control bg-[#111318] border border-[#2B303A] px-3.5 py-2.5 text-sm text-[#F5F5F5] placeholder:text-[#A1A1AA]/50 focus:border-[#FF8A32]"
                 />
               </div>
@@ -1707,15 +2214,26 @@ export default function App() {
                   ? 'Signing in...'
                   : authMode === 'signin'
                   ? `Sign in as ${ROLE_DESCRIPTIONS[selectedRole].label} ↗`
-                  : `Create ${ROLE_DESCRIPTIONS[selectedRole].label} Account ↗`}
+                  : 'Create Reporter Account ↗'}
               </button>
             </form>
           </div>
         </div>
 
-        <div className="max-w-[1160px] w-full mx-auto text-xs text-[#A1A1AA] flex items-center justify-between">
+        <div className="max-w-[1160px] w-full mx-auto text-xs text-[#A1A1AA] flex flex-wrap items-center justify-between gap-4">
           <span>ProofBridge — Minimalist Civic & Facility SaaS</span>
-          <span>Claimed Repair ≠ Verified Outcome</span>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('');
+              setPassword('');
+              setStage('authority-login');
+            }}
+            className="text-[#A1A1AA] hover:text-[#FF8A32] flex items-center gap-1.5 transition"
+          >
+            <Shield className="w-3.5 h-3.5 text-[#FF8A32]" />
+            System Authority Login →
+          </button>
         </div>
       </div>
     );
@@ -1730,6 +2248,16 @@ export default function App() {
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
   }> = [
+    ...(profile.role === 'admin'
+      ? [
+          {
+            id: 'authority' as NavTab,
+            label: 'Authority console',
+            icon: Shield,
+            badge: allProfiles.length || undefined,
+          },
+        ]
+      : []),
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'issues', label: 'Explore issues', icon: ListFilter, badge: issues.length || undefined },
     { id: 'report', label: 'Report an issue', icon: Plus },
@@ -3251,14 +3779,25 @@ export default function App() {
           )}
 
           {/* =============================================================== */}
-          {/* VIEW 6–9: SECONDARY VIEWS                                       */}
+          {/* VIEW 6–10: SECONDARY & AUTHORITY VIEWS                          */}
           {/* =============================================================== */}
+          {activeTab === 'authority' && profile.role === 'admin' && (
+            <AuthorityConsoleView
+              profile={profile}
+              allProfiles={allProfiles}
+              issues={issues}
+              onProvisionAccount={handleProvisionOfficialAccount}
+              onAdminAssignRole={handleAdminAssignRole}
+              onResetUserPassword={handleResetUserPassword}
+              onDeleteUserAccount={handleDeleteUserAccount}
+              onOpenIssue={openIssueDetail}
+            />
+          )}
+
           {activeTab === 'reviews' && (
             <EvidenceReviewsView
               issues={issues}
-              profile={profile}
               onOpenIssue={openIssueDetail}
-              onSwitchRole={handleRoleSwitch}
             />
           )}
 
@@ -3278,9 +3817,13 @@ export default function App() {
           {activeTab === 'settings' && (
             <SettingsView
               profile={profile}
+              allProfiles={allProfiles}
               isCloudConnected={isCloudActive}
               onSaveProfile={handleSaveProfile}
-              onSwitchRole={handleRoleSwitch}
+              onAdminAssignRole={handleAdminAssignRole}
+              onProvisionAccount={handleProvisionOfficialAccount}
+              onResetUserPassword={handleResetUserPassword}
+              onDeleteUserAccount={handleDeleteUserAccount}
               onSignOut={handleSignOut}
             />
           )}
@@ -3317,7 +3860,6 @@ export default function App() {
             setSelectedIssueId(null);
             setDetailIssue(null);
           }}
-          onRoleSwitch={handleRoleSwitch}
           onTriageUnderReview={handleTriageUnderReview}
           onAssignIssue={handleAssignIssue}
           onCancelIssue={handleCancelIssue}

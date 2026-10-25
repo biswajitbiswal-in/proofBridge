@@ -1,12 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const env = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+
 export const supabaseUrl =
-  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || '';
+  ((env.VITE_SUPABASE_URL as string | undefined) || '').trim();
 
 export const supabaseAnonKey =
   (
-    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+    (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
     ''
   ).trim();
 

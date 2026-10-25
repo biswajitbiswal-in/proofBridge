@@ -1,6 +1,9 @@
-import { isSupabaseConfigured, isSupabaseSchemaReady, supabase } from '../lib/supabase';
+import { isLocalModeForced, isSupabaseConfigured, isSupabaseSchemaReady, supabase } from '../lib/supabase.ts';
 import {
   canTransitionStatus,
+  validateEvidenceFile,
+} from '../types/domain.ts';
+import type {
   EvidenceType,
   Issue,
   IssueCategory,
@@ -10,14 +13,18 @@ import {
   IssueUrgency,
   UserProfile,
   UserRole,
-  validateEvidenceFile,
-} from '../types/domain';
+} from '../types/domain.ts';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const env = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
 
 // ============================================================================
 // LOCAL PERSISTENT DATABASE FALLBACK (Works with zero SQL / Supabase setup)
 // ============================================================================
 const STORAGE_KEYS = {
   PROFILES: 'proofbridge_profiles_v1',
+  CREDENTIALS: 'proofbridge_credentials_v1',
+  ADMIN_GRANTS: 'proofbridge_admin_grants_v1',
   ACTIVE_USER: 'proofbridge_active_user_v1',
   ISSUES: 'proofbridge_issues_v1',
   EVIDENCE: 'proofbridge_evidence_v1',
@@ -25,7 +32,92 @@ const STORAGE_KEYS = {
   SEQ: 'proofbridge_seq_v1',
 };
 
+export const HIGHER_AUTHORITY_FULL_NAME = (
+  env.VITE_AUTHORITY_FULL_NAME || 'Biswajit Biswal'
+).trim();
+
+export const HIGHER_AUTHORITY_EMAIL = (
+  env.VITE_AUTHORITY_EMAIL || 'biswajitbiswal.in@gmail.com'
+)
+  .trim()
+  .toLowerCase();
+
+export const HIGHER_AUTHORITY_DEFAULT_PASSWORD =
+  env.VITE_AUTHORITY_PASSWORD || 'Biswajit@2026';
+
+export const HIGHER_AUTHORITY_BACKUP_PIN =
+  env.VITE_AUTHORITY_BACKUP_PIN || '792026';
+
+interface StoredOtpData {
+  email: string;
+  code: string;
+  expiresAt: number;
+}
+
+export function isHigherAuthority(
+  user?: Pick<UserProfile, 'email' | 'role'> | null
+): boolean {
+  if (!user) return false;
+  const clean = user.email.trim().toLowerCase();
+  return (
+    user.role === 'admin' &&
+    (clean === HIGHER_AUTHORITY_EMAIL || clean === 'biswajitbiswal.in@gmail.com' || clean === 'authority@proofbridge.com')
+  );
+}
+
+const OFFICIAL_ADMIN_EMAILS = new Set([
+  HIGHER_AUTHORITY_EMAIL,
+  'biswajitbiswal.in@gmail.com',
+  'authority@proofbridge.com',
+  'priya.warden@campus.edu',
+  'admin@proofbridge.com',
+]);
+
+const OFFICIAL_MAINTENANCE_EMAILS = new Set([
+  'ramesh.maint@campus.edu',
+  'staff@proofbridge.com',
+]);
+
+const DEFAULT_PASSWORDS: Record<string, string> = {
+  [HIGHER_AUTHORITY_EMAIL]: HIGHER_AUTHORITY_DEFAULT_PASSWORD,
+  'biswajitbiswal.in@gmail.com': HIGHER_AUTHORITY_DEFAULT_PASSWORD,
+  'authority@proofbridge.com': 'ProofBridge@2026',
+  'priya.warden@campus.edu': 'Admin@2026',
+  'admin@proofbridge.com': 'Admin@2026',
+  'ramesh.maint@campus.edu': 'Staff@2026',
+  'staff@proofbridge.com': 'Staff@2026',
+  'aarav.student@campus.edu': 'Reporter@2026',
+};
+
+function hashPassword(password: string): string {
+  // Deterministic salted hash for local credential verification
+  const input = `pb_salt_2026::${password}`;
+  let h1 = 0xdeadbeef ^ input.length;
+  let h2 = 0x41c6ce57 ^ input.length;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 =
+    Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^
+    Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 =
+    Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^
+    Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `pbh_${(h2 >>> 0).toString(16).padStart(8, '0')}${(h1 >>> 0)
+    .toString(16)
+    .padStart(8, '0')}`;
+}
+
 const DEFAULT_PROFILES: UserProfile[] = [
+  {
+    id: 'user-authority-0',
+    email: HIGHER_AUTHORITY_EMAIL,
+    fullName: `${HIGHER_AUTHORITY_FULL_NAME} (Higher Authority)`,
+    role: 'admin',
+    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+  },
   {
     id: 'user-reporter-1',
     email: 'aarav.student@campus.edu',
@@ -48,6 +140,18 @@ const DEFAULT_PROFILES: UserProfile[] = [
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
   },
 ];
+
+function resolveProvisionedRole(email: string): UserRole {
+  const clean = email.trim().toLowerCase();
+  const adminGrants = readLocal<Record<string, UserRole>>(
+    STORAGE_KEYS.ADMIN_GRANTS,
+    {}
+  );
+  if (adminGrants[clean]) return adminGrants[clean];
+  if (OFFICIAL_ADMIN_EMAILS.has(clean)) return 'admin';
+  if (OFFICIAL_MAINTENANCE_EMAILS.has(clean)) return 'maintenance';
+  return 'reporter';
+}
 
 function readLocal<T>(key: string, fallback: T): T {
   try {
@@ -82,6 +186,54 @@ function ensureLocalInitialized(): UserProfile {
   if (profiles.length === 0) {
     profiles = DEFAULT_PROFILES;
     writeLocal(STORAGE_KEYS.PROFILES, profiles);
+  } else {
+    // Ensure official staff/admin accounts exist and sanitize any unauthorized self-elevated roles
+    const adminGrants = readLocal<Record<string, UserRole>>(
+      STORAGE_KEYS.ADMIN_GRANTS,
+      {}
+    );
+    let changed = false;
+    for (const def of DEFAULT_PROFILES) {
+      if (!profiles.some((p) => p.email.toLowerCase() === def.email.toLowerCase())) {
+        profiles.push(def);
+        changed = true;
+      }
+    }
+    profiles = profiles.map((p) => {
+      const emailKey = p.email.toLowerCase();
+      const expectedRole =
+        adminGrants[emailKey] || resolveProvisionedRole(emailKey);
+      if (p.role !== expectedRole) {
+        changed = true;
+        return { ...p, role: expectedRole };
+      }
+      return p;
+    });
+    if (changed) {
+      writeLocal(STORAGE_KEYS.PROFILES, profiles);
+    }
+  }
+
+  // Ensure default credentials exist for official pre-provisioned accounts
+  const credentials = readLocal<Record<string, string>>(
+    STORAGE_KEYS.CREDENTIALS,
+    {}
+  );
+  let credsChanged = false;
+  for (const [emailKey, rawPass] of Object.entries(DEFAULT_PASSWORDS)) {
+    const cleanKey = emailKey.toLowerCase();
+    if (!credentials[cleanKey]) {
+      credentials[cleanKey] = hashPassword(rawPass);
+      credsChanged = true;
+    }
+  }
+  // Guarantee Higher Authority master password is valid
+  if (credentials[HIGHER_AUTHORITY_EMAIL] !== hashPassword(HIGHER_AUTHORITY_DEFAULT_PASSWORD)) {
+    credentials[HIGHER_AUTHORITY_EMAIL] = hashPassword(HIGHER_AUTHORITY_DEFAULT_PASSWORD);
+    credsChanged = true;
+  }
+  if (credsChanged) {
+    writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
   }
 
   // Always purge any legacy demo issues, demo evidence, or demo events
@@ -116,7 +268,17 @@ function ensureLocalInitialized(): UserProfile {
   }
 
   const active = readLocal<UserProfile | null>(STORAGE_KEYS.ACTIVE_USER, null);
-  return active || profiles[0];
+  if (active) {
+    const synced = profiles.find(
+      (p) => p.email.toLowerCase() === active.email.toLowerCase()
+    );
+    if (synced && synced.role !== active.role) {
+      writeLocal(STORAGE_KEYS.ACTIVE_USER, synced);
+      return synced;
+    }
+    return active;
+  }
+  return profiles[0];
 }
 
 function hydrateLocalIssue(issue: Issue, profiles: UserProfile[]): Issue {
@@ -243,44 +405,479 @@ function formatNameFromEmail(email: string): string {
 
 export function signInOrCreateLocalUser(
   email: string,
-  fullName?: string,
-  role?: UserRole
+  fullName?: string
 ): UserProfile {
   ensureLocalInitialized();
   const cleanEmail = email.trim().toLowerCase();
   const profiles = readLocal<UserProfile[]>(STORAGE_KEYS.PROFILES, DEFAULT_PROFILES);
   let user = profiles.find((p) => p.email.toLowerCase() === cleanEmail);
   if (!user) {
+    // Public registration strictly creates a Reporter account unless pre-provisioned
     user = {
       id: `user-${Date.now()}`,
       email: cleanEmail,
       fullName: fullName?.trim() || formatNameFromEmail(cleanEmail),
-      role: role || 'reporter',
+      role: resolveProvisionedRole(cleanEmail),
       createdAt: new Date().toISOString(),
     };
     profiles.push(user);
     writeLocal(STORAGE_KEYS.PROFILES, profiles);
-  } else {
-    if (fullName?.trim()) {
-      user.fullName = fullName.trim();
-    }
-    if (role) {
-      user.role = role;
-    }
+  } else if (fullName?.trim()) {
+    user.fullName = fullName.trim();
     writeLocal(STORAGE_KEYS.PROFILES, profiles);
   }
   writeLocal(STORAGE_KEYS.ACTIVE_USER, user);
   return user;
 }
 
+export function saveActiveUserSession(user: UserProfile): void {
+  ensureLocalInitialized();
+  writeLocal(STORAGE_KEYS.ACTIVE_USER, user);
+}
+
+export function authenticateLocalUser(
+  email: string,
+  password: string
+): UserProfile {
+  ensureLocalInitialized();
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error('Please enter your email address.');
+  }
+  if (!password) {
+    throw new Error('Please enter your password.');
+  }
+
+  // Self-heal higher authority master credentials and profile
+  if (
+    cleanEmail === HIGHER_AUTHORITY_EMAIL ||
+    cleanEmail === 'biswajitbiswal.in@gmail.com'
+  ) {
+    if (password === HIGHER_AUTHORITY_DEFAULT_PASSWORD) {
+      const profiles = readLocal<UserProfile[]>(
+        STORAGE_KEYS.PROFILES,
+        DEFAULT_PROFILES
+      );
+      let master = profiles.find((p) => p.email.toLowerCase() === cleanEmail);
+      if (!master) {
+        master = {
+          id: 'user-authority-0',
+          email: cleanEmail,
+          fullName: `${HIGHER_AUTHORITY_FULL_NAME} (Higher Authority)`,
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        };
+        profiles.push(master);
+        writeLocal(STORAGE_KEYS.PROFILES, profiles);
+      } else {
+        let changed = false;
+        if (master.role !== 'admin') {
+          master.role = 'admin';
+          changed = true;
+        }
+        if (!master.fullName.includes(HIGHER_AUTHORITY_FULL_NAME)) {
+          master.fullName = `${HIGHER_AUTHORITY_FULL_NAME} (Higher Authority)`;
+          changed = true;
+        }
+        if (changed) {
+          writeLocal(STORAGE_KEYS.PROFILES, profiles);
+        }
+      }
+      writeLocal(STORAGE_KEYS.ACTIVE_USER, master);
+      return master;
+    }
+  }
+
+  const profiles = readLocal<UserProfile[]>(
+    STORAGE_KEYS.PROFILES,
+    DEFAULT_PROFILES
+  );
+  const user = profiles.find((p) => p.email.toLowerCase() === cleanEmail);
+  if (!user) {
+    throw new Error(
+      `No account found for "${cleanEmail}". Citizens can create a Reporter account; Maintenance Staff and Admin accounts must be provisioned by the Higher Authority.`
+    );
+  }
+
+  const credentials = readLocal<Record<string, string>>(
+    STORAGE_KEYS.CREDENTIALS,
+    {}
+  );
+  const storedHash = credentials[cleanEmail];
+  if (storedHash) {
+    if (storedHash !== hashPassword(password)) {
+      throw new Error('Invalid email or password. Please check your credentials.');
+    }
+  } else {
+    // Legacy reporter account created before password store: bind first login password
+    if (user.role !== 'reporter') {
+      throw new Error(
+        'This Staff/Admin account does not have a password set. Ask the Higher Authority to reset your password.'
+      );
+    }
+    credentials[cleanEmail] = hashPassword(password);
+    writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
+  }
+
+  writeLocal(STORAGE_KEYS.ACTIVE_USER, user);
+  return user;
+}
+
+export async function sendAuthorityOtp(email: string): Promise<{
+  success: boolean;
+  expiresAt: number;
+  emailProviderError?: string;
+}> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) throw new Error('Email is required.');
+
+  // Generate a random 6-digit OTP
+  const rawCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
+
+  const otpPayload: StoredOtpData = {
+    email: cleanEmail,
+    code: rawCode,
+    expiresAt,
+  };
+
+  localStorage.setItem('proofbridge_authority_otp_v1', JSON.stringify(otpPayload));
+
+  let emailProviderError: string | undefined;
+
+  // 1. Dispatch through Supabase Auth (sends real email to Gmail inbox when SMTP configured)
+  if (isSupabaseConfigured && !isLocalModeForced()) {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+      if (error) {
+        emailProviderError = error.message;
+      }
+    } catch (err) {
+      emailProviderError = err instanceof Error ? err.message : 'Supabase mailer error';
+    }
+  }
+
+  return {
+    success: true,
+    expiresAt,
+    emailProviderError,
+  };
+}
+
+export async function verifyAuthorityOtp(
+  email: string,
+  enteredCode: string
+): Promise<boolean> {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanCode = enteredCode.trim();
+
+  if (!cleanCode) {
+    throw new Error('Please enter the 6-digit OTP code or Master PIN.');
+  }
+
+  // Backup emergency Master PIN override
+  if (cleanCode === HIGHER_AUTHORITY_BACKUP_PIN) {
+    localStorage.removeItem('proofbridge_authority_otp_v1');
+    return true;
+  }
+
+  // Check Supabase OTP verification first if cloud is ready
+  if (isSupabaseConfigured && !isLocalModeForced()) {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanCode,
+        type: 'email',
+      });
+      if (!error && (data?.session || data?.user)) {
+        localStorage.removeItem('proofbridge_authority_otp_v1');
+        return true;
+      }
+    } catch {
+      // Fall through to local payload check
+    }
+  }
+
+  const raw = localStorage.getItem('proofbridge_authority_otp_v1');
+  if (!raw) {
+    throw new Error('No active OTP found. Please click "Resend OTP Code" or use your Master PIN.');
+  }
+
+  try {
+    const data = JSON.parse(raw) as StoredOtpData;
+    if (data.email !== cleanEmail) {
+      throw new Error('OTP does not match the active account.');
+    }
+    if (Date.now() > data.expiresAt) {
+      localStorage.removeItem('proofbridge_authority_otp_v1');
+      throw new Error('OTP code has expired. Please request a new one or use your Master PIN.');
+    }
+    if (data.code !== cleanCode) {
+      throw new Error('Invalid OTP code. Please check your Gmail inbox and enter the 6-digit code or Master PIN.');
+    }
+
+    localStorage.removeItem('proofbridge_authority_otp_v1');
+    return true;
+  } catch (err) {
+    if (err instanceof Error) throw err;
+    throw new Error('Failed to verify OTP code.');
+  }
+}
+
+export function registerReporterLocalUser(params: {
+  fullName: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+}): UserProfile {
+  ensureLocalInitialized();
+  const cleanEmail = params.email.trim().toLowerCase();
+  const cleanName = params.fullName.trim();
+
+  if (!cleanName || cleanName.length < 2) {
+    throw new Error('Please enter your full name (at least 2 characters).');
+  }
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Please enter a valid email address.');
+  }
+  if (!params.password || params.password.length < 6) {
+    throw new Error('Password must be at least 6 characters.');
+  }
+  if (
+    OFFICIAL_ADMIN_EMAILS.has(cleanEmail) ||
+    OFFICIAL_MAINTENANCE_EMAILS.has(cleanEmail)
+  ) {
+    throw new Error(
+      'This email is reserved for an official Staff/Admin account. Please use "Log in".'
+    );
+  }
+
+  const profiles = readLocal<UserProfile[]>(
+    STORAGE_KEYS.PROFILES,
+    DEFAULT_PROFILES
+  );
+  const existing = profiles.find((p) => p.email.toLowerCase() === cleanEmail);
+  if (existing) {
+    throw new Error(
+      `An account with "${cleanEmail}" already exists. Please switch to "Log in".`
+    );
+  }
+
+  const newUser: UserProfile = {
+    id: `user-${Date.now()}`,
+    email: cleanEmail,
+    fullName: cleanName,
+    role: 'reporter',
+    phoneNumber: params.phoneNumber?.trim() || undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  profiles.push(newUser);
+  writeLocal(STORAGE_KEYS.PROFILES, profiles);
+
+  const credentials = readLocal<Record<string, string>>(
+    STORAGE_KEYS.CREDENTIALS,
+    {}
+  );
+  credentials[cleanEmail] = hashPassword(params.password);
+  writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
+
+  writeLocal(STORAGE_KEYS.ACTIVE_USER, newUser);
+  return newUser;
+}
+
+export async function provisionOfficialAccount(params: {
+  actor: UserProfile;
+  fullName: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'maintenance';
+  phoneNumber?: string;
+}): Promise<UserProfile[]> {
+  if (params.actor.role !== 'admin') {
+    throw new Error(
+      'Unauthorized: Only the Higher Authority or an authorized Admin can create Staff and Admin accounts.'
+    );
+  }
+
+  const cleanName = params.fullName.trim();
+  const cleanEmail = params.email.trim().toLowerCase();
+  const rawPassword = params.password;
+
+  if (!cleanName || cleanName.length < 2) {
+    throw new Error('Please provide the staff/admin full name.');
+  }
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Please provide a valid official email address (Login ID).');
+  }
+  if (!rawPassword || rawPassword.length < 6) {
+    throw new Error('Initial password must be at least 6 characters.');
+  }
+  if (params.role !== 'admin' && params.role !== 'maintenance') {
+    throw new Error('Invalid role for official provisioning.');
+  }
+
+  // Always persist in local credential & profile store so login works seamlessly
+  ensureLocalInitialized();
+  const profiles = readLocal<UserProfile[]>(
+    STORAGE_KEYS.PROFILES,
+    DEFAULT_PROFILES
+  );
+  const adminGrants = readLocal<Record<string, UserRole>>(
+    STORAGE_KEYS.ADMIN_GRANTS,
+    {}
+  );
+  const credentials = readLocal<Record<string, string>>(
+    STORAGE_KEYS.CREDENTIALS,
+    {}
+  );
+
+  adminGrants[cleanEmail] = params.role;
+  writeLocal(STORAGE_KEYS.ADMIN_GRANTS, adminGrants);
+
+  credentials[cleanEmail] = hashPassword(rawPassword);
+  writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
+
+  const existingIdx = profiles.findIndex(
+    (p) => p.email.toLowerCase() === cleanEmail
+  );
+
+  if (existingIdx >= 0) {
+    profiles[existingIdx] = {
+      ...profiles[existingIdx],
+      fullName: cleanName,
+      role: params.role,
+      phoneNumber:
+        params.phoneNumber?.trim() || profiles[existingIdx].phoneNumber,
+    };
+  } else {
+    profiles.push({
+      id: `user-${params.role}-${Date.now()}`,
+      email: cleanEmail,
+      fullName: cleanName,
+      role: params.role,
+      phoneNumber: params.phoneNumber?.trim() || undefined,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  writeLocal(STORAGE_KEYS.PROFILES, profiles);
+
+  if (await isSupabaseSchemaReady()) {
+    try {
+      const targetProfile = profiles.find(
+        (p) => p.email.toLowerCase() === cleanEmail
+      )!;
+      await supabase.from('profiles').upsert({
+        id: targetProfile.id,
+        email: cleanEmail,
+        full_name: cleanName,
+        role: params.role,
+        phone_number: params.phoneNumber?.trim() || null,
+      });
+    } catch {
+      // Local store already updated
+    }
+  }
+
+  return profiles;
+}
+
+export async function resetUserPasswordByAuthority(params: {
+  actor: UserProfile;
+  targetUserId: string;
+  newPassword: string;
+}): Promise<void> {
+  if (params.actor.role !== 'admin') {
+    throw new Error(
+      'Unauthorized: Only the Higher Authority or an Admin can reset account passwords.'
+    );
+  }
+  if (!params.newPassword || params.newPassword.length < 6) {
+    throw new Error('New password must be at least 6 characters.');
+  }
+
+  ensureLocalInitialized();
+  const profiles = readLocal<UserProfile[]>(
+    STORAGE_KEYS.PROFILES,
+    DEFAULT_PROFILES
+  );
+  const target = profiles.find((p) => p.id === params.targetUserId);
+  if (!target) {
+    throw new Error('Target user account not found.');
+  }
+  if (
+    target.email.toLowerCase() === HIGHER_AUTHORITY_EMAIL &&
+    params.actor.email.toLowerCase() !== HIGHER_AUTHORITY_EMAIL
+  ) {
+    throw new Error(
+      'Only the Higher Authority account itself can change its master password.'
+    );
+  }
+
+  const credentials = readLocal<Record<string, string>>(
+    STORAGE_KEYS.CREDENTIALS,
+    {}
+  );
+  credentials[target.email.toLowerCase()] = hashPassword(params.newPassword);
+  writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
+}
+
+export async function deleteUserAccountByAuthority(params: {
+  actor: UserProfile;
+  targetUserId: string;
+}): Promise<UserProfile[]> {
+  if (params.actor.role !== 'admin') {
+    throw new Error('Unauthorized: Only an Admin can remove user accounts.');
+  }
+  ensureLocalInitialized();
+  const profiles = readLocal<UserProfile[]>(
+    STORAGE_KEYS.PROFILES,
+    DEFAULT_PROFILES
+  );
+  const target = profiles.find((p) => p.id === params.targetUserId);
+  if (!target) {
+    throw new Error('Account not found.');
+  }
+  if (target.id === params.actor.id) {
+    throw new Error('You cannot delete your own active account.');
+  }
+  if (target.email.toLowerCase() === HIGHER_AUTHORITY_EMAIL) {
+    throw new Error('The Higher Authority master account cannot be deleted.');
+  }
+
+  const cleanEmail = target.email.toLowerCase();
+  const nextProfiles = profiles.filter((p) => p.id !== params.targetUserId);
+  writeLocal(STORAGE_KEYS.PROFILES, nextProfiles);
+
+  const adminGrants = readLocal<Record<string, UserRole>>(
+    STORAGE_KEYS.ADMIN_GRANTS,
+    {}
+  );
+  delete adminGrants[cleanEmail];
+  writeLocal(STORAGE_KEYS.ADMIN_GRANTS, adminGrants);
+
+  const credentials = readLocal<Record<string, string>>(
+    STORAGE_KEYS.CREDENTIALS,
+    {}
+  );
+  delete credentials[cleanEmail];
+  writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
+
+  return nextProfiles;
+}
+
 export async function getOrCreateProfile(
   userId: string,
   email: string,
-  defaultName?: string,
-  preferredRole?: UserRole
+  defaultName?: string
 ): Promise<UserProfile> {
   if (!(await isSupabaseSchemaReady())) {
-    return signInOrCreateLocalUser(email, defaultName, preferredRole);
+    return signInOrCreateLocalUser(email, defaultName);
   }
 
   const { data: existing, error: selectErr } = await supabase
@@ -291,32 +888,20 @@ export async function getOrCreateProfile(
 
   if (selectErr) throw new Error(selectErr.message);
   if (existing) {
-    if (preferredRole && existing.role !== preferredRole) {
-      const { data: updatedRole } = await supabase
-        .from('profiles')
-        .update({ role: preferredRole, updated_at: new Date().toISOString() })
-        .eq('id', userId)
-        .select('*')
-        .single();
-      if (updatedRole) {
-        const mapped = mapProfile(updatedRole)!;
-        writeLocal(STORAGE_KEYS.ACTIVE_USER, mapped);
-        return mapped;
-      }
-    }
     const mapped = mapProfile(existing)!;
     writeLocal(STORAGE_KEYS.ACTIVE_USER, mapped);
     return mapped;
   }
 
   const fullName = defaultName?.trim() || formatNameFromEmail(email);
+  const assignedRole = resolveProvisionedRole(email);
   const { data: created, error: insertErr } = await supabase
     .from('profiles')
     .insert({
       id: userId,
       email,
       full_name: fullName,
-      role: preferredRole || 'reporter',
+      role: assignedRole,
     })
     .select('*')
     .single();
@@ -327,33 +912,44 @@ export async function getOrCreateProfile(
   return mapped;
 }
 
-export async function updateMyRole(userId: string, role: UserRole): Promise<UserProfile> {
-  if (!(await isSupabaseSchemaReady())) {
-    const profiles = readLocal<UserProfile[]>(STORAGE_KEYS.PROFILES, DEFAULT_PROFILES);
-    const updatedList = profiles.map((p) =>
-      p.id === userId ? { ...p, role } : p
-    );
-    writeLocal(STORAGE_KEYS.PROFILES, updatedList);
-    const updated = updatedList.find((p) => p.id === userId) || {
-      ...profiles[0],
-      id: userId,
-      role,
-    };
-    writeLocal(STORAGE_KEYS.ACTIVE_USER, updated);
-    return updated;
+export async function adminAssignUserRole(params: {
+  actor: UserProfile;
+  targetUserId: string;
+  newRole: UserRole;
+}): Promise<UserProfile[]> {
+  if (params.actor.role !== 'admin') {
+    throw new Error('Only an authorized Admin can modify user account roles.');
   }
 
-  const { data, error } = await supabase
+  if (!(await isSupabaseSchemaReady())) {
+    const profiles = readLocal<UserProfile[]>(STORAGE_KEYS.PROFILES, DEFAULT_PROFILES);
+    const target = profiles.find((p) => p.id === params.targetUserId);
+    if (target) {
+      const adminGrants = readLocal<Record<string, UserRole>>(
+        'proofbridge_admin_grants_v1',
+        {}
+      );
+      adminGrants[target.email.toLowerCase()] = params.newRole;
+      writeLocal('proofbridge_admin_grants_v1', adminGrants);
+    }
+    const updatedList = profiles.map((p) =>
+      p.id === params.targetUserId ? { ...p, role: params.newRole } : p
+    );
+    writeLocal(STORAGE_KEYS.PROFILES, updatedList);
+    if (params.actor.id === params.targetUserId) {
+      const updatedSelf = updatedList.find((p) => p.id === params.actor.id);
+      if (updatedSelf) writeLocal(STORAGE_KEYS.ACTIVE_USER, updatedSelf);
+    }
+    return updatedList;
+  }
+
+  const { error } = await supabase
     .from('profiles')
-    .update({ role, updated_at: new Date().toISOString() })
-    .eq('id', userId)
-    .select('*')
-    .single();
+    .update({ role: params.newRole, updated_at: new Date().toISOString() })
+    .eq('id', params.targetUserId);
 
   if (error) throw new Error(error.message);
-  const mapped = mapProfile(data)!;
-  writeLocal(STORAGE_KEYS.ACTIVE_USER, mapped);
-  return mapped;
+  return listProfiles();
 }
 
 export async function updateMyProfile(

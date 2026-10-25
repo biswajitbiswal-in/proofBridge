@@ -25,7 +25,6 @@ import {
   STATUS_META,
   URGENCY_META,
   UserProfile,
-  UserRole,
 } from '../types/domain';
 
 interface IssueDetailDrawerProps {
@@ -53,7 +52,6 @@ interface IssueDetailDrawerProps {
   cancelReasonInput: string;
   setCancelReasonInput: (val: string) => void;
   onClose: () => void;
-  onRoleSwitch: (role: UserRole) => void;
   onTriageUnderReview: () => void;
   onAssignIssue: () => void;
   onCancelIssue: (e: React.FormEvent) => void;
@@ -114,7 +112,6 @@ export function IssueDetailDrawer({
   cancelReasonInput,
   setCancelReasonInput,
   onClose,
-  onRoleSwitch,
   onTriageUnderReview,
   onAssignIssue,
   onCancelIssue,
@@ -428,7 +425,7 @@ export function IssueDetailDrawer({
 
             {/* Role-Gated Workflow Action Panels */}
             <div className="pt-6 space-y-4">
-              {/* Role handoff guidance for non-admin on newly submitted issues */}
+              {/* Role status guidance for non-admin on newly submitted issues */}
               {profile.role !== 'admin' &&
                 ['submitted', 'under_review'].includes(detailIssue.status) && (
                   <div className="bg-pb-bg border border-pb-border rounded-card p-4 flex flex-wrap items-center justify-between gap-3">
@@ -437,20 +434,16 @@ export function IssueDetailDrawer({
                         Awaiting Coordinator Triage & Staff Assignment
                       </p>
                       <p className="text-xs text-pb-textSecondary">
-                        An Admin / Reviewer assigns this issue to Maintenance Staff.
+                        An authorized Admin / Reviewer will triage this report and assign it to Maintenance Staff.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onRoleSwitch('admin')}
-                      className="px-3 py-1.5 rounded-control bg-pb-primary hover:bg-pb-primaryHover text-pb-bg text-xs font-semibold transition"
-                    >
-                      Switch to Admin / Reviewer →
-                    </button>
+                    <span className="px-2.5 py-1 rounded bg-pb-card border border-pb-border text-[11px] font-medium text-pb-textSecondary">
+                      Admin Action Required
+                    </span>
                   </div>
                 )}
 
-              {/* Role handoff guidance for reporter on active maintenance issues */}
+              {/* Role status guidance for reporter on active maintenance issues */}
               {profile.role === 'reporter' &&
                 [
                   'assigned',
@@ -464,16 +457,12 @@ export function IssueDetailDrawer({
                         Assigned to Maintenance Staff
                       </p>
                       <p className="text-xs text-pb-textSecondary">
-                        Maintenance Staff updates repair status and uploads completion evidence.
+                        Maintenance Staff is responsible for updating repair status and uploading completion evidence.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onRoleSwitch('maintenance')}
-                      className="px-3 py-1.5 rounded-control bg-pb-primary hover:bg-pb-primaryHover text-pb-bg text-xs font-semibold transition"
-                    >
-                      Switch to Maintenance Staff →
-                    </button>
+                    <span className="px-2.5 py-1 rounded bg-pb-card border border-pb-border text-[11px] font-medium text-pb-textSecondary">
+                      Staff In Progress
+                    </span>
                   </div>
                 )}
 
@@ -665,13 +654,9 @@ export function IssueDetailDrawer({
                       </p>
                     </div>
                     {profile.role !== 'admin' && (
-                      <button
-                        type="button"
-                        onClick={() => onRoleSwitch('admin')}
-                        className="px-3 py-1.5 rounded-control bg-pb-primary hover:bg-pb-primaryHover text-white text-xs font-semibold transition"
-                      >
-                        Switch to Reviewer Role
-                      </button>
+                      <span className="px-2.5 py-1 rounded bg-pb-card border border-pb-border text-[11px] font-medium text-pb-textSecondary">
+                        Admin Reviewer Only
+                      </span>
                     )}
                   </div>
 

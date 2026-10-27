@@ -1268,7 +1268,7 @@ export default function App() {
       <div className="min-h-screen flex flex-col bg-[#111318] text-[#F5F5F5] selection:bg-[#FF8A32]/30">
         {toast && (
           <div
-            className={`fixed bottom-6 right-6 z-50 max-w-md px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2.5 ${
+            className={`fixed bottom-6 right-6 z-50 max-w-md px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2.5 animate-slide-in-right shadow-2xl ${
               toast.type === 'error'
                 ? 'border-[#F87171]/40 text-[#F87171]'
                 : 'border-[#2B303A] text-[#F5F5F5]'
@@ -1365,19 +1365,22 @@ export default function App() {
         </header>
 
         {/* Editorial Public Landing Page */}
-        <main className="flex-1 max-w-[1200px] w-full mx-auto px-5 sm:px-10">
-          {/* 1. HERO SECTION */}
-          <section className="py-20 sm:py-32 border-b border-[#2B303A]">
-            <div className="max-w-4xl space-y-8">
-              <p className="pb-eyebrow">YOUR COMMUNITY. YOUR SAY.</p>
+        <main className="flex-1 max-w-[1200px] w-full mx-auto px-5 sm:px-10 relative">
+          {/* Subtle Ambient Accent Glow */}
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[650px] h-[340px] bg-[#FF8A32]/10 blur-[130px] rounded-full pointer-events-none -z-10 animate-pulse-glow" />
 
-              <h1 className="pb-display-hero text-[54px] sm:text-[84px] lg:text-[108px] text-[#F5F5F5]">
+          {/* 1. HERO SECTION */}
+          <section className="py-20 sm:py-32 border-b border-[#2B303A] relative">
+            <div className="max-w-4xl space-y-8">
+              <p className="pb-eyebrow animate-fade-in-up stagger-1">YOUR COMMUNITY. YOUR SAY.</p>
+
+              <h1 className="pb-display-hero text-[54px] sm:text-[84px] lg:text-[108px] text-[#F5F5F5] animate-fade-in-up stagger-2">
                 Small issues.
                 <br />
                 <span className="text-[#FF8A32]">BIG CHANGE.</span>
               </h1>
 
-              <div className="max-w-xl space-y-4 pt-2">
+              <div className="max-w-xl space-y-4 pt-2 animate-fade-in-up stagger-3">
                 <p className="font-display text-xl sm:text-2xl font-medium text-[#F5F5F5] tracking-tight leading-snug">
                   Your city. Your voice. Your chance to make a difference.
                 </p>
@@ -1387,11 +1390,11 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="pt-4 flex flex-wrap items-center gap-8">
+              <div className="pt-4 flex flex-wrap items-center gap-8 animate-fade-in-up stagger-4">
                 <button
                   type="button"
                   onClick={() => requireLoginForTab('report')}
-                  className="px-7 py-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-sm font-semibold transition"
+                  className="px-7 py-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-sm font-semibold transition btn-interact hover:shadow-lg hover:shadow-[#FF8A32]/25"
                 >
                   Report an Issue ↗
                 </button>
@@ -1399,7 +1402,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => requireLoginForTab('issues')}
-                  className="text-sm font-medium text-[#F5F5F5] hover:text-[#FF8A32] transition"
+                  className="text-sm font-medium text-[#F5F5F5] hover:text-[#FF8A32] transition hover:translate-x-1 duration-200 inline-flex items-center gap-1.5"
                 >
                   Explore Reported Issues →
                 </button>
@@ -1431,7 +1434,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => requireLoginForTab('report')}
-                  className="text-sm font-semibold text-[#FF8A32] hover:text-[#FF9E54] transition"
+                  className="text-sm font-semibold text-[#FF8A32] hover:text-[#FF9E54] transition inline-flex items-center gap-1 hover:translate-x-1 duration-200"
                 >
                   Make Your First Report ↗
                 </button>
@@ -1441,8 +1444,8 @@ export default function App() {
             <div className="lg:col-span-6 lg:border-l lg:border-[#2B303A] lg:pl-12 space-y-10">
               <p className="pb-eyebrow">THE IMPACT SO FAR</p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-                <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="space-y-3 p-5 rounded-card bg-[#1C2028]/40 border border-[#2B303A]/70 card-hover">
                   <p className="pb-stat-number text-6xl sm:text-7xl text-[#F5F5F5]">
                     {stats.total}
                   </p>
@@ -1451,7 +1454,7 @@ export default function App() {
                   </span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 p-5 rounded-card bg-[#1C2028]/40 border border-[#2B303A]/70 card-hover">
                   <p className="pb-stat-number text-6xl sm:text-7xl text-[#F5F5F5]">
                     {stats.beingAddressed}
                   </p>
@@ -1460,7 +1463,7 @@ export default function App() {
                   </span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 p-5 rounded-card bg-[#1C2028]/40 border border-[#2B303A]/70 card-hover">
                   <p className="pb-stat-number text-6xl sm:text-7xl text-[#FF8A32]">
                     {stats.verifiedResolutions}
                   </p>
@@ -1497,20 +1500,20 @@ export default function App() {
                       setCategoryFilter(cat);
                       requireLoginForTab('issues');
                     }}
-                    className="p-8 bg-[#111318] hover:bg-[#1C2028] border-r border-b border-[#2B303A] text-left transition group flex flex-col justify-between gap-10"
+                    className="p-8 bg-[#111318] hover:bg-[#1C2028] border-r border-b border-[#2B303A] text-left transition-all duration-200 group flex flex-col justify-between gap-10 card-hover"
                   >
                     <div className="flex items-center justify-between w-full">
-                      <Icon className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#FF8A32] transition" />
+                      <Icon className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#FF8A32] group-hover:scale-110 transition-all duration-200" />
                       <span className="font-mono text-xs text-[#A1A1AA] tabular-nums">
                         {count}
                       </span>
                     </div>
 
                     <div className="flex items-baseline justify-between w-full">
-                      <span className="font-display text-xl font-semibold text-[#F5F5F5] group-hover:text-[#FF8A32] transition">
+                      <span className="font-display text-xl font-semibold text-[#F5F5F5] group-hover:text-[#FF8A32] transition-colors duration-200">
                         {CATEGORY_LABELS[cat]}
                       </span>
-                      <span className="text-sm text-[#A1A1AA] group-hover:text-[#F5F5F5] transition">
+                      <span className="text-sm text-[#A1A1AA] group-hover:text-[#F5F5F5] group-hover:translate-x-1.5 transition-all duration-200">
                         →
                       </span>
                     </div>
@@ -1537,7 +1540,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => requireLoginForTab('issues')}
-                className="text-sm font-medium text-[#FF8A32] hover:text-[#FF9E54] shrink-0 transition"
+                className="text-sm font-medium text-[#FF8A32] hover:text-[#FF9E54] shrink-0 transition inline-flex items-center gap-1 hover:translate-x-1 duration-200"
               >
                 View All Reports →
               </button>
@@ -1555,7 +1558,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => requireLoginForTab('report')}
-                    className="px-6 py-3.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition"
+                    className="px-6 py-3.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition btn-interact hover:shadow-lg hover:shadow-[#FF8A32]/20"
                   >
                     Report Your First Issue ↗
                   </button>
@@ -1567,14 +1570,14 @@ export default function App() {
                   <div
                     key={issue.id}
                     onClick={() => requireLoginForTab('issues')}
-                    className="py-6 px-4 -mx-4 hover:bg-[#1C2028] rounded-control cursor-pointer transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="py-6 px-4 -mx-4 hover:bg-[#1C2028] rounded-control cursor-pointer transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-hover group"
                   >
                     <div className="space-y-1.5 min-w-0">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="font-mono text-xs text-[#A1A1AA] tabular-nums">
                           {issue.code}
                         </span>
-                        <h3 className="font-display text-lg font-semibold text-[#F5F5F5] truncate">
+                        <h3 className="font-display text-lg font-semibold text-[#F5F5F5] group-hover:text-[#FF8A32] transition-colors duration-200 truncate">
                           {issue.title}
                         </h3>
                       </div>
@@ -1596,13 +1599,17 @@ export default function App() {
                     </div>
 
                     <span
-                      className={`text-xs px-3 py-1 rounded shrink-0 inline-flex items-center gap-1.5 ${
+                      className={`text-xs px-3 py-1 rounded shrink-0 inline-flex items-center gap-1.5 transition-all duration-200 group-hover:shadow-sm ${
                         STATUS_META[issue.status].badgeClass
                       }`}
                     >
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
                           STATUS_META[issue.status].dotColor
+                        } ${
+                          ['in_progress', 'under_review', 'awaiting_verification'].includes(issue.status)
+                            ? 'live-pulse-dot'
+                            : ''
                         }`}
                       />
                       {STATUS_META[issue.status].shortLabel}
@@ -1626,9 +1633,9 @@ export default function App() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              <div className="space-y-4 border-t border-[#2B303A] pt-8">
-                <span className="font-display text-5xl font-normal text-[#FF8A32] tabular-nums block">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-4 p-8 rounded-card bg-[#1C2028]/30 border border-[#2B303A] card-hover group">
+                <span className="font-display text-5xl font-normal text-[#FF8A32] group-hover:scale-105 transition-transform duration-200 tabular-nums block">
                   01
                 </span>
                 <h3 className="font-display text-2xl font-semibold text-[#F5F5F5]">
@@ -1639,8 +1646,8 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="space-y-4 border-t border-[#2B303A] pt-8">
-                <span className="font-display text-5xl font-normal text-[#FF8A32] tabular-nums block">
+              <div className="space-y-4 p-8 rounded-card bg-[#1C2028]/30 border border-[#2B303A] card-hover group">
+                <span className="font-display text-5xl font-normal text-[#FF8A32] group-hover:scale-105 transition-transform duration-200 tabular-nums block">
                   02
                 </span>
                 <h3 className="font-display text-2xl font-semibold text-[#F5F5F5]">
@@ -1651,8 +1658,8 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="space-y-4 border-t border-[#2B303A] pt-8">
-                <span className="font-display text-5xl font-normal text-[#FF8A32] tabular-nums block">
+              <div className="space-y-4 p-8 rounded-card bg-[#1C2028]/30 border border-[#2B303A] card-hover group">
+                <span className="font-display text-5xl font-normal text-[#FF8A32] group-hover:scale-105 transition-transform duration-200 tabular-nums block">
                   03
                 </span>
                 <h3 className="font-display text-2xl font-semibold text-[#F5F5F5]">
@@ -1756,10 +1763,10 @@ export default function App() {
   // ===========================================================================
   if (stage === 'authority-login') {
     return (
-      <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10">
+      <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10 animate-fade-in">
         {toast && (
           <div
-            className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 ${
+            className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 animate-slide-in-right shadow-2xl ${
               toast.type === 'error'
                 ? 'border-[#F87171]/40 text-[#F87171]'
                 : 'border-[#2B303A] text-[#F5F5F5]'
@@ -1774,7 +1781,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setStage('landing')}
-            className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] flex items-center gap-2 transition"
+            className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] flex items-center gap-2 transition btn-interact"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Public Site
@@ -1786,8 +1793,8 @@ export default function App() {
         </div>
 
         {/* Dedicated System Administrator Login Card */}
-        <div className="max-w-md w-full mx-auto my-auto py-10 space-y-6">
-          <div className="bg-[#1C2028] border border-[#FF8A32]/40 rounded-panel p-8 space-y-6">
+        <div className="max-w-md w-full mx-auto my-auto py-10 space-y-6 animate-scale-in">
+          <div className="bg-[#1C2028] border border-[#FF8A32]/40 rounded-panel p-8 space-y-6 card-hover shadow-2xl">
             <div className="flex items-center gap-3 border-b border-[#2B303A] pb-5">
               <ProofBridgeMark className="w-10 h-10 shrink-0" />
               <div>
@@ -1841,7 +1848,7 @@ export default function App() {
                   <button
                     type="submit"
                     disabled={authBusy || !email.trim() || !password}
-                    className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition flex items-center justify-center gap-2"
+                    className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition flex items-center justify-center gap-2 btn-interact"
                   >
                     <Mail className="w-4 h-4" />
                     {authBusy
@@ -1909,7 +1916,7 @@ export default function App() {
                   <button
                     type="submit"
                     disabled={authBusy || authorityOtp.length !== 6}
-                    className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition"
+                    className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition btn-interact"
                   >
                     {authBusy
                       ? 'Verifying Code...'
@@ -1945,10 +1952,10 @@ export default function App() {
   // ===========================================================================
   if (stage === 'auth' || !profile) {
     return (
-      <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10">
+      <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10 animate-fade-in">
         {toast && (
           <div
-            className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 ${
+            className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 animate-slide-in-right shadow-2xl ${
               toast.type === 'error'
                 ? 'border-[#F87171]/40 text-[#F87171]'
                 : 'border-[#2B303A] text-[#F5F5F5]'
@@ -1963,7 +1970,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setStage('landing')}
-            className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] flex items-center gap-2 transition"
+            className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] flex items-center gap-2 transition btn-interact"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Landing Page
@@ -1975,7 +1982,7 @@ export default function App() {
         {/* Center Split Editorial Auth */}
         <div className="max-w-[1160px] w-full mx-auto my-auto py-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Editorial Column + Role Separation Policy */}
-          <div className="lg:col-span-6 space-y-8">
+          <div className="lg:col-span-6 space-y-8 animate-fade-in-up">
             <div className="space-y-4">
               <p className="pb-eyebrow">STRICT ROLE SEPARATION</p>
               <h1 className="pb-display-hero text-5xl sm:text-6xl text-[#F5F5F5]">
@@ -2048,7 +2055,7 @@ export default function App() {
           </div>
 
           {/* Right Auth Form Card */}
-          <div className="lg:col-span-6 bg-[#1C2028] border border-[#2B303A] rounded-panel p-8 space-y-6">
+          <div className="lg:col-span-6 bg-[#1C2028] border border-[#2B303A] rounded-panel p-8 space-y-6 animate-scale-in card-hover shadow-2xl">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <ProofBridgeMark className="w-9 h-9 shrink-0" />
@@ -2208,7 +2215,7 @@ export default function App() {
               <button
                 type="submit"
                 disabled={authBusy}
-                className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition"
+                className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 font-semibold text-sm text-[#111318] transition btn-interact"
               >
                 {authBusy
                   ? 'Signing in...'
@@ -2297,7 +2304,7 @@ export default function App() {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2.5 ${
+          className={`fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2.5 animate-slide-in-right shadow-2xl ${
             toast.type === 'error'
               ? 'border-[#F87171]/40 text-[#F87171]'
               : 'border-[#2B303A] text-[#F5F5F5]'
@@ -2323,7 +2330,7 @@ export default function App() {
       {/* Mobile Sidebar Backdrop */}
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/75 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/75 lg:hidden animate-fade-in"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
@@ -2535,7 +2542,7 @@ export default function App() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 rounded-card bg-[#1C2028] border border-[#2B303A] p-3 z-50 space-y-2">
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-card bg-[#1C2028] border border-[#2B303A] p-3 z-50 space-y-2 animate-scale-in origin-top-right shadow-2xl">
                   <div className="flex items-center justify-between pb-2 border-b border-[#2B303A]">
                     <span className="text-xs font-semibold text-[#F5F5F5]">
                       Needs Review / Action
@@ -2603,7 +2610,7 @@ export default function App() {
               </button>
 
               {accountMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 rounded-card bg-[#1C2028] border border-[#2B303A] p-2 z-50 space-y-1">
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-card bg-[#1C2028] border border-[#2B303A] p-2 z-50 space-y-1 animate-scale-in origin-top-right shadow-2xl">
                   <div className="px-2.5 py-2 border-b border-[#2B303A]">
                     <p className="text-xs font-semibold text-[#F5F5F5] truncate">
                       {profile.fullName}
@@ -2648,7 +2655,7 @@ export default function App() {
           {/* VIEW 1: SAAS BENTO DASHBOARD                                    */}
           {/* =============================================================== */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#2B303A] pb-6">
                 <div className="space-y-1.5">
                   <p className="pb-eyebrow">COMMAND CENTER</p>
@@ -2663,7 +2670,7 @@ export default function App() {
                     type="button"
                     onClick={() => refreshAllData()}
                     aria-label="Refresh dashboard"
-                    className="p-2.5 rounded-control bg-[#1C2028] hover:bg-[#222731] border border-[#2B303A] text-[#A1A1AA] hover:text-[#F5F5F5] transition"
+                    className="p-2.5 rounded-control bg-[#1C2028] hover:bg-[#222731] border border-[#2B303A] text-[#A1A1AA] hover:text-[#F5F5F5] transition btn-interact"
                   >
                     <RefreshCw
                       className={`w-4 h-4 ${
@@ -2677,7 +2684,7 @@ export default function App() {
                       setSubmittedReport(null);
                       setActiveTab('report');
                     }}
-                    className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition"
+                    className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition btn-interact hover:shadow-lg hover:shadow-[#FF8A32]/20"
                   >
                     Report an Issue ↗
                   </button>
@@ -2692,7 +2699,7 @@ export default function App() {
                     setStatusFilter('all');
                     setActiveTab('issues');
                   }}
-                  className="bg-[#1C2028] hover:bg-[#222731] border border-[#2B303A] rounded-card p-6 text-left transition space-y-3"
+                  className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 text-left space-y-3 card-hover btn-interact"
                 >
                   <div className="flex items-center justify-between">
                     <span className="pb-eyebrow">OPEN ISSUES</span>
@@ -2712,7 +2719,7 @@ export default function App() {
                     setStatusFilter('in_progress');
                     setActiveTab('issues');
                   }}
-                  className="bg-[#1C2028] hover:bg-[#222731] border border-[#2B303A] rounded-card p-6 text-left transition space-y-3"
+                  className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 text-left space-y-3 card-hover btn-interact"
                 >
                   <div className="flex items-center justify-between">
                     <span className="pb-eyebrow">BEING ADDRESSED</span>
@@ -2733,7 +2740,7 @@ export default function App() {
                       profile.role === 'admin' ? 'reviews' : 'issues'
                     )
                   }
-                  className="bg-[#1C2028] hover:bg-[#222731] border border-[#2B303A] rounded-card p-6 text-left transition space-y-3"
+                  className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 text-left space-y-3 card-hover btn-interact"
                 >
                   <div className="flex items-center justify-between">
                     <span className="pb-eyebrow text-[#FBBF24]">
@@ -2755,7 +2762,7 @@ export default function App() {
                     setStatusFilter('verified_resolved');
                     setActiveTab('issues');
                   }}
-                  className="bg-[#1C2028] hover:bg-[#222731] border border-[#2B303A] rounded-card p-6 text-left transition space-y-3"
+                  className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 text-left space-y-3 card-hover btn-interact"
                 >
                   <div className="flex items-center justify-between">
                     <span className="pb-eyebrow text-[#22C55E]">
@@ -3078,7 +3085,7 @@ export default function App() {
           {/* VIEW 2: EXPLORE ISSUES PAGE (Section 7)                         */}
           {/* =============================================================== */}
           {activeTab === 'issues' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#2B303A] pb-6">
                 <div className="space-y-2 max-w-2xl">
                   <p className="pb-eyebrow">COMMUNITY WATCH</p>
@@ -3097,7 +3104,7 @@ export default function App() {
                     setSubmittedReport(null);
                     setActiveTab('report');
                   }}
-                  className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition shrink-0"
+                  className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition shrink-0 btn-interact"
                 >
                   Report an Issue ↗
                 </button>
@@ -3204,7 +3211,7 @@ export default function App() {
                       <div
                         key={issue.id}
                         onClick={() => openIssueDetail(issue.id)}
-                        className="p-5 hover:bg-[#222731] transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        className="p-5 hover:bg-[#222731] transition-all duration-200 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-hover"
                       >
                         <div className="space-y-1.5 min-w-0 max-w-2xl">
                           <div className="flex flex-wrap items-center gap-2.5">
@@ -3248,6 +3255,12 @@ export default function App() {
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
                                 STATUS_META[issue.status].dotColor
+                              } ${
+                                issue.status === 'in_progress' ||
+                                issue.status === 'under_review' ||
+                                issue.status === 'awaiting_verification'
+                                  ? 'live-pulse-dot'
+                                  : ''
                               }`}
                             />
                             {STATUS_META[issue.status].shortLabel}
@@ -3303,7 +3316,7 @@ export default function App() {
           {/* VIEW 3: REPORT ISSUE PAGE (Section 5)                           */}
           {/* =============================================================== */}
           {activeTab === 'report' && (
-            <div className="max-w-2xl mx-auto space-y-8">
+            <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
               <div className="space-y-2 border-b border-[#2B303A] pb-6">
                 <p className="pb-eyebrow">LET'S FIX SOMETHING</p>
                 <h1 className="pb-display-section text-4xl sm:text-5xl text-[#F5F5F5]">
@@ -3315,7 +3328,7 @@ export default function App() {
               </div>
 
               {submittedReport ? (
-                <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-8 space-y-6">
+                <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-8 space-y-6 animate-scale-in card-hover shadow-xl">
                   <span className="font-mono text-xs text-[#FF8A32] tabular-nums">
                     {submittedReport.code}
                   </span>
@@ -3334,7 +3347,7 @@ export default function App() {
                         setActiveTab('my-reports');
                         openIssueDetail(id);
                       }}
-                      className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition"
+                      className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition btn-interact"
                     >
                       Track My Report →
                     </button>
@@ -3342,7 +3355,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setSubmittedReport(null)}
-                      className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] transition"
+                      className="text-xs font-medium text-[#A1A1AA] hover:text-[#F5F5F5] transition btn-interact"
                     >
                       Submit another report
                     </button>
@@ -3578,7 +3591,7 @@ export default function App() {
                       <button
                         type="submit"
                         disabled={reportSubmitting}
-                        className="px-6 py-3 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 text-[#111318] text-sm font-semibold transition"
+                        className="px-6 py-3 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 text-[#111318] text-sm font-semibold transition btn-interact"
                       >
                         {reportSubmitting ? 'Submitting...' : 'Submit Report ↗'}
                       </button>
@@ -3593,7 +3606,7 @@ export default function App() {
           {/* VIEW 4: MY REPORTS PAGE (Section 6)                             */}
           {/* =============================================================== */}
           {activeTab === 'my-reports' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#2B303A] pb-6">
                 <div className="space-y-2 max-w-xl">
                   <p className="pb-eyebrow">YOUR CONTRIBUTION</p>
@@ -3611,14 +3624,14 @@ export default function App() {
                     setSubmittedReport(null);
                     setActiveTab('report');
                   }}
-                  className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition shrink-0"
+                  className="px-5 py-2.5 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition shrink-0 btn-interact"
                 >
                   Report an Issue ↗
                 </button>
               </div>
 
               {myReportedIssues.length === 0 ? (
-                <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-12 text-center space-y-4">
+                <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-12 text-center space-y-4 animate-scale-in">
                   <h2 className="pb-display-section text-2xl sm:text-3xl text-[#F5F5F5]">
                     Nothing reported. Yet.
                   </h2>
@@ -3632,7 +3645,7 @@ export default function App() {
                         setSubmittedReport(null);
                         setActiveTab('report');
                       }}
-                      className="px-5 py-3 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition"
+                      className="px-5 py-3 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold transition btn-interact"
                     >
                       Report Your First Issue ↗
                     </button>
@@ -3644,7 +3657,7 @@ export default function App() {
                     <div
                       key={issue.id}
                       onClick={() => openIssueDetail(issue.id)}
-                      className="p-5 hover:bg-[#222731] cursor-pointer transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="p-5 hover:bg-[#222731] cursor-pointer transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-hover"
                     >
                       <div className="space-y-1.5 min-w-0">
                         <div className="flex flex-wrap items-center gap-2.5">
@@ -3673,6 +3686,12 @@ export default function App() {
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             STATUS_META[issue.status].dotColor
+                          } ${
+                            issue.status === 'in_progress' ||
+                            issue.status === 'under_review' ||
+                            issue.status === 'awaiting_verification'
+                              ? 'live-pulse-dot'
+                              : ''
                           }`}
                         />
                         {STATUS_META[issue.status].shortLabel}
@@ -3688,7 +3707,7 @@ export default function App() {
           {/* VIEW 5: ASSIGNMENTS                                             */}
           {/* =============================================================== */}
           {activeTab === 'assignments' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#2B303A] pb-6">
                 <div className="space-y-2 max-w-xl">
                   <p className="pb-eyebrow">FIELD OPERATIONS</p>
@@ -3702,7 +3721,7 @@ export default function App() {
               </div>
 
               {maintenanceQueue.length === 0 ? (
-                <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-12 text-center space-y-2">
+                <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-12 text-center space-y-2 animate-scale-in">
                   <Wrench className="w-6 h-6 text-[#A1A1AA] mx-auto" />
                   <p className="font-display text-lg font-semibold text-[#F5F5F5]">
                     No active maintenance assignments.
@@ -3717,7 +3736,7 @@ export default function App() {
                     <div
                       key={issue.id}
                       onClick={() => openIssueDetail(issue.id)}
-                      className="p-5 hover:bg-[#222731] cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition"
+                      className="p-5 hover:bg-[#222731] cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 card-hover"
                     >
                       <div className="space-y-1.5 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -3732,6 +3751,12 @@ export default function App() {
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
                                 STATUS_META[issue.status].dotColor
+                              } ${
+                                issue.status === 'assigned' ||
+                                issue.status === 'in_progress' ||
+                                issue.status === 'resolution_disputed'
+                                  ? 'live-pulse-dot'
+                                  : ''
                               }`}
                             />
                             {STATUS_META[issue.status].shortLabel}
@@ -3765,7 +3790,7 @@ export default function App() {
                           e.stopPropagation();
                           openIssueDetail(issue.id);
                         }}
-                        className="px-4 py-2 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold shrink-0 transition"
+                        className="px-4 py-2 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold shrink-0 transition btn-interact"
                       >
                         {issue.status === 'assigned'
                           ? 'Start Repair Work →'
@@ -3782,50 +3807,60 @@ export default function App() {
           {/* VIEW 6–10: SECONDARY & AUTHORITY VIEWS                          */}
           {/* =============================================================== */}
           {activeTab === 'authority' && profile.role === 'admin' && (
-            <AuthorityConsoleView
-              profile={profile}
-              allProfiles={allProfiles}
-              issues={issues}
-              onProvisionAccount={handleProvisionOfficialAccount}
-              onAdminAssignRole={handleAdminAssignRole}
-              onResetUserPassword={handleResetUserPassword}
-              onDeleteUserAccount={handleDeleteUserAccount}
-              onOpenIssue={openIssueDetail}
-            />
+            <div className="animate-fade-in">
+              <AuthorityConsoleView
+                profile={profile}
+                allProfiles={allProfiles}
+                issues={issues}
+                onProvisionAccount={handleProvisionOfficialAccount}
+                onAdminAssignRole={handleAdminAssignRole}
+                onResetUserPassword={handleResetUserPassword}
+                onDeleteUserAccount={handleDeleteUserAccount}
+                onOpenIssue={openIssueDetail}
+              />
+            </div>
           )}
 
           {activeTab === 'reviews' && (
-            <EvidenceReviewsView
-              issues={issues}
-              onOpenIssue={openIssueDetail}
-            />
+            <div className="animate-fade-in">
+              <EvidenceReviewsView
+                issues={issues}
+                onOpenIssue={openIssueDetail}
+              />
+            </div>
           )}
 
           {activeTab === 'timeline' && (
-            <ActivityTimelineView
-              events={recentEvents}
-              loading={loadingIssues}
-              onOpenIssue={openIssueDetail}
-              onRefresh={() => refreshAllData()}
-            />
+            <div className="animate-fade-in">
+              <ActivityTimelineView
+                events={recentEvents}
+                loading={loadingIssues}
+                onOpenIssue={openIssueDetail}
+                onRefresh={() => refreshAllData()}
+              />
+            </div>
           )}
 
           {activeTab === 'analytics' && (
-            <AnalyticsView issues={issues} onOpenIssue={openIssueDetail} />
+            <div className="animate-fade-in">
+              <AnalyticsView issues={issues} onOpenIssue={openIssueDetail} />
+            </div>
           )}
 
           {activeTab === 'settings' && (
-            <SettingsView
-              profile={profile}
-              allProfiles={allProfiles}
-              isCloudConnected={isCloudActive}
-              onSaveProfile={handleSaveProfile}
-              onAdminAssignRole={handleAdminAssignRole}
-              onProvisionAccount={handleProvisionOfficialAccount}
-              onResetUserPassword={handleResetUserPassword}
-              onDeleteUserAccount={handleDeleteUserAccount}
-              onSignOut={handleSignOut}
-            />
+            <div className="animate-fade-in">
+              <SettingsView
+                profile={profile}
+                allProfiles={allProfiles}
+                isCloudConnected={isCloudActive}
+                onSaveProfile={handleSaveProfile}
+                onAdminAssignRole={handleAdminAssignRole}
+                onProvisionAccount={handleProvisionOfficialAccount}
+                onResetUserPassword={handleResetUserPassword}
+                onDeleteUserAccount={handleDeleteUserAccount}
+                onSignOut={handleSignOut}
+              />
+            </div>
           )}
         </main>
       </div>

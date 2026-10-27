@@ -124,12 +124,12 @@ export function IssueDetailDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="issue-detail-heading"
     >
-      <div className="bg-pb-card border border-pb-border rounded-panel max-w-4xl w-full max-h-[92vh] overflow-y-auto flex flex-col">
+      <div className="bg-pb-card border border-pb-border rounded-panel max-w-4xl w-full max-h-[92vh] overflow-y-auto flex flex-col animate-scale-in shadow-2xl">
         {/* Top Sticky Header */}
         <div className="sticky top-0 z-20 bg-pb-card border-b border-pb-border px-6 py-4 flex items-center justify-between gap-4">
           {detailLoading || !detailIssue ? (
@@ -150,6 +150,12 @@ export function IssueDetailDrawer({
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     STATUS_META[detailIssue.status].dotColor
+                  } ${
+                    detailIssue.status === 'in_progress' ||
+                    detailIssue.status === 'under_review' ||
+                    detailIssue.status === 'awaiting_verification'
+                      ? 'live-pulse-dot'
+                      : ''
                   }`}
                 />
                 {STATUS_META[detailIssue.status].label}

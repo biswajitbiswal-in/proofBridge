@@ -150,7 +150,7 @@ export function EvidenceReviewsView({
             <div
               key={issue.id}
               onClick={() => onOpenIssue(issue.id)}
-              className="p-5 hover:bg-[#222731] transition cursor-pointer flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              className="p-5 hover:bg-[#222731] transition-all duration-200 cursor-pointer flex flex-col lg:flex-row lg:items-center justify-between gap-4 card-hover"
             >
               <div className="space-y-2 max-w-3xl">
                 <div className="flex flex-wrap items-center gap-2.5">
@@ -165,6 +165,11 @@ export function EvidenceReviewsView({
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
                         STATUS_META[issue.status].dotColor
+                      } ${
+                        issue.status === 'awaiting_verification' ||
+                        issue.status === 'resolution_disputed'
+                          ? 'live-pulse-dot'
+                          : ''
                       }`}
                     />
                     {STATUS_META[issue.status].shortLabel}
@@ -212,7 +217,7 @@ export function EvidenceReviewsView({
                     e.stopPropagation();
                     onOpenIssue(issue.id);
                   }}
-                  className="px-4 py-2 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold flex items-center gap-1.5 transition"
+                  className="px-4 py-2 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] text-[#111318] text-xs font-semibold flex items-center gap-1.5 transition btn-interact"
                 >
                   <GitCompareArrows className="w-3.5 h-3.5" />
                   Review Evidence →
@@ -448,28 +453,28 @@ export function AnalyticsView({
 
       {/* Top KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2 card-hover transition-all duration-200">
           <span className="pb-eyebrow">ISSUES REPORTED</span>
           <p className="pb-stat-number text-4xl sm:text-5xl text-[#F5F5F5]">
             {metrics.total}
           </p>
         </div>
 
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2 card-hover transition-all duration-200">
           <span className="pb-eyebrow text-[#22C55E]">ISSUES RESOLVED</span>
           <p className="pb-stat-number text-4xl sm:text-5xl text-[#22C55E]">
             {metrics.verifiedCount}
           </p>
         </div>
 
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2 card-hover transition-all duration-200">
           <span className="pb-eyebrow text-[#F87171]">DISPUTED / REWORK</span>
           <p className="pb-stat-number text-4xl sm:text-5xl text-[#F87171]">
             {metrics.disputedCount}
           </p>
         </div>
 
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-2 card-hover transition-all duration-200">
           <span className="pb-eyebrow">AVG VERIFICATION TIME</span>
           <p className="pb-stat-number text-4xl sm:text-5xl text-[#F5F5F5]">
             {metrics.avgResolutionHours !== null
@@ -481,7 +486,7 @@ export function AnalyticsView({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Distribution */}
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-5">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-6 space-y-5 card-hover transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="pb-eyebrow">BY CATEGORY</p>
@@ -510,7 +515,7 @@ export function AnalyticsView({
                   </div>
                   <div className="w-full h-1.5 bg-[#111318] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#FF8A32] rounded-full"
+                      className="h-full bg-[#FF8A32] rounded-full transition-all duration-700 ease-out"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -1422,7 +1427,7 @@ export function AuthorityConsoleView({
 
       {/* Top KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5 card-hover transition-all duration-200">
           <span className="pb-eyebrow">PROVISIONED ADMINS</span>
           <p className="pb-stat-number text-4xl text-[#FF8A32]">
             {counts.admins}
@@ -1430,7 +1435,7 @@ export function AuthorityConsoleView({
           <p className="text-xs text-[#A1A1AA]">Authorized reviewers & coordinators</p>
         </div>
 
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5 card-hover transition-all duration-200">
           <span className="pb-eyebrow">MAINTENANCE STAFF</span>
           <p className="pb-stat-number text-4xl text-[#60A5FA]">
             {counts.staff}
@@ -1438,7 +1443,7 @@ export function AuthorityConsoleView({
           <p className="text-xs text-[#A1A1AA]">Field repair technicians</p>
         </div>
 
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5 card-hover transition-all duration-200">
           <span className="pb-eyebrow">CITIZEN REPORTERS</span>
           <p className="pb-stat-number text-4xl text-[#F5F5F5]">
             {counts.reporters}
@@ -1446,7 +1451,7 @@ export function AuthorityConsoleView({
           <p className="text-xs text-[#A1A1AA]">Public registered accounts</p>
         </div>
 
-        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5">
+        <div className="bg-[#1C2028] border border-[#2B303A] rounded-card p-5 space-y-1.5 card-hover transition-all duration-200">
           <span className="pb-eyebrow">ACTIVE OPEN ISSUES</span>
           <p className="pb-stat-number text-4xl text-[#FBBF24]">
             {counts.openIssues}
@@ -1458,7 +1463,7 @@ export function AuthorityConsoleView({
       {/* Main Split Grid: Left = Create Admin/Staff ID & Password, Right = Manage Accounts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Provision New Admin / Staff Account */}
-        <div className="lg:col-span-5 bg-[#1C2028] border border-[#FF8A32]/40 rounded-card p-6 space-y-5">
+        <div className="lg:col-span-5 bg-[#1C2028] border border-[#FF8A32]/40 rounded-card p-6 space-y-5 card-hover transition-all duration-200">
           <div className="space-y-1 border-b border-[#2B303A] pb-4">
             <p className="pb-eyebrow text-[#FF8A32]">STEP 01 — CREATE CREDENTIALS</p>
             <h2 className="font-display text-lg font-bold text-[#F5F5F5]">
@@ -1470,7 +1475,7 @@ export function AuthorityConsoleView({
           </div>
 
           {createdCredentials && (
-            <div className="p-4 rounded-control bg-[#22C55E]/10 border border-[#22C55E]/30 space-y-2.5">
+            <div className="p-4 rounded-control bg-[#22C55E]/10 border border-[#22C55E]/30 space-y-2.5 animate-scale-in">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-[#22C55E] flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
@@ -1616,7 +1621,7 @@ export function AuthorityConsoleView({
             <button
               type="submit"
               disabled={provBusy}
-              className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 text-[#111318] text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+              className="w-full py-3 px-4 rounded-control bg-[#FF8A32] hover:bg-[#FF9E54] disabled:opacity-50 text-[#111318] text-xs font-semibold flex items-center justify-center gap-1.5 transition btn-interact"
             >
               <Plus className="w-4 h-4" />
               {provBusy

@@ -1,4 +1,10 @@
-import {
+declare const process: { exit: (code?: number) => never; env: Record<string, string | undefined> };
+
+// Set test environment secrets before importing proofBridgeService
+process.env.AUTHORITY_PASSWORD = process.env.AUTHORITY_PASSWORD || 'Biswajit@2026';
+process.env.AUTHORITY_BACKUP_PIN = process.env.AUTHORITY_BACKUP_PIN || '792026';
+
+const {
   authenticateLocalUser,
   registerReporterLocalUser,
   provisionOfficialAccount,
@@ -10,9 +16,7 @@ import {
   HIGHER_AUTHORITY_DEFAULT_PASSWORD,
   HIGHER_AUTHORITY_BACKUP_PIN,
   isHigherAuthority,
-} from '../services/proofBridgeService.ts';
-
-declare const process: { exit: (code?: number) => never };
+} = await import('../services/proofBridgeService.ts');
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);

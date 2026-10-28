@@ -52,10 +52,9 @@ import {
   deleteUserAccountByAuthority,
   getCachedWorkspaceSnapshot,
   getIssueDetails,
+  authenticateAuthorityCredentials,
   getOrCreateProfile,
   getSavedLocalSession,
-  HIGHER_AUTHORITY_BACKUP_PIN,
-  HIGHER_AUTHORITY_DEFAULT_PASSWORD,
   HIGHER_AUTHORITY_EMAIL,
   isHigherAuthority,
   linkRecurringIssue,
@@ -743,7 +742,7 @@ export default function App() {
     }
 
     try {
-      const signedInUser = authenticateLocalUser(cleanEmail, cleanPassword);
+      const signedInUser = await authenticateAuthorityCredentials(cleanEmail, cleanPassword);
       if (signedInUser.role !== 'admin') {
         clearLocalSession();
         setProfile(null);
@@ -817,7 +816,7 @@ export default function App() {
 
       const verifiedUser =
         authorityPendingUser ||
-        authenticateLocalUser(cleanEmail, password);
+        (await authenticateAuthorityCredentials(cleanEmail, password));
 
       saveActiveUserSession(verifiedUser);
       setProfile(verifiedUser);

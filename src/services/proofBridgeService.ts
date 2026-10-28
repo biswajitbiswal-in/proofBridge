@@ -32,21 +32,32 @@ const STORAGE_KEYS = {
   SEQ: 'proofbridge_seq_v1',
 };
 
+declare const process: any;
+const isNodeEnv = typeof process !== 'undefined' && Boolean(process.env);
+const nodeEnv = isNodeEnv ? process.env : {};
+
 export const HIGHER_AUTHORITY_FULL_NAME = (
-  env.VITE_AUTHORITY_FULL_NAME || 'Biswajit Biswal'
+  env.VITE_AUTHORITY_FULL_NAME ||
+  nodeEnv.AUTHORITY_FULL_NAME ||
+  'Biswajit Biswal'
 ).trim();
 
 export const HIGHER_AUTHORITY_EMAIL = (
-  env.VITE_AUTHORITY_EMAIL || 'biswajitbiswal.in@gmail.com'
+  env.VITE_AUTHORITY_EMAIL ||
+  nodeEnv.AUTHORITY_EMAIL ||
+  'biswajitbiswal.in@gmail.com'
 )
   .trim()
   .toLowerCase();
 
+// In production browser builds, secrets are NEVER compiled into client bundles.
+// Verification is strictly handled server-side via the Vercel Serverless Function (/api/authority).
+// In Node.js testing environments, nodeEnv provides the test secrets.
 export const HIGHER_AUTHORITY_DEFAULT_PASSWORD =
-  env.VITE_AUTHORITY_PASSWORD || 'Biswajit@2026';
+  nodeEnv.AUTHORITY_PASSWORD || '';
 
 export const HIGHER_AUTHORITY_BACKUP_PIN =
-  env.VITE_AUTHORITY_BACKUP_PIN || '792026';
+  nodeEnv.AUTHORITY_BACKUP_PIN || '';
 
 interface StoredOtpData {
   email: string;
@@ -79,8 +90,12 @@ const OFFICIAL_MAINTENANCE_EMAILS = new Set([
 ]);
 
 const DEFAULT_PASSWORDS: Record<string, string> = {
-  [HIGHER_AUTHORITY_EMAIL]: HIGHER_AUTHORITY_DEFAULT_PASSWORD,
-  'biswajitbiswal.in@gmail.com': HIGHER_AUTHORITY_DEFAULT_PASSWORD,
+  ...(isNodeEnv && HIGHER_AUTHORITY_DEFAULT_PASSWORD
+    ? {
+        [HIGHER_AUTHORITY_EMAIL]: HIGHER_AUTHORITY_DEFAULT_PASSWORD,
+        'biswajitbiswal.in@gmail.com': HIGHER_AUTHORITY_DEFAULT_PASSWORD,
+      }
+    : {}),
   'authority@proofbridge.com': 'ProofBridge@2026',
   'priya.warden@campus.edu': 'Admin@2026',
   'admin@proofbridge.com': 'Admin@2026',
@@ -227,10 +242,12 @@ function ensureLocalInitialized(): UserProfile {
       credsChanged = true;
     }
   }
-  // Guarantee Higher Authority master password is valid
-  if (credentials[HIGHER_AUTHORITY_EMAIL] !== hashPassword(HIGHER_AUTHORITY_DEFAULT_PASSWORD)) {
-    credentials[HIGHER_AUTHORITY_EMAIL] = hashPassword(HIGHER_AUTHORITY_DEFAULT_PASSWORD);
-    credsChanged = true;
+  // Guarantee Higher Authority master password is valid in testing / offline environments
+  if (isNodeEnv && HIGHER_AUTHORITY_DEFAULT_PASSWORD) {
+    if (credentials[HIGHER_AUTHORITY_EMAIL] !== hashPassword(HIGHER_AUTHORITY_DEFAULT_PASSWORD)) {
+      credentials[HIGHER_AUTHORITY_EMAIL] = hashPassword(HIGHER_AUTHORITY_DEFAULT_PASSWORD);
+      credsChanged = true;
+    }
   }
   if (credsChanged) {
     writeLocal(STORAGE_KEYS.CREDENTIALS, credentials);
@@ -448,12 +465,12 @@ export function authenticateLocalUser(
     throw new Error('Please enter your password.');
   }
 
-  // Self-heal higher authority master credentials and profile
+  // Self-heal higher authority master credentials and profile in test/dev
   if (
     cleanEmail === HIGHER_AUTHORITY_EMAIL ||
     cleanEmail === 'biswajitbiswal.in@gmail.com'
   ) {
-    if (password === HIGHER_AUTHORITY_DEFAULT_PASSWORD) {
+    if (isNodeEnv && HIGHER_AUTHORITY_DEFAULT_PASSWORD && password === HIGHER_AUTHORITY_DEFAULT_PASSWORD) {
       const profiles = readLocal<UserProfile[]>(
         STORAGE_KEYS.PROFILES,
         DEFAULT_PROFILES
@@ -523,6 +540,60 @@ export function authenticateLocalUser(
   return user;
 }
 
+export async function authenticateAuthorityCredentials(
+  email: string,
+  password: string
+): Promise<UserProfile> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error('Please enter your administrator email ID.');
+  }
+  if (!password) {
+    throw new Error('Please enter your master password.');
+  }
+
+  // 1. Production server-side verification via Vercel Serverless Function (/api/authority)
+  try {
+    const res = await fetch('/api/authority', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'verify-credentials',
+        email: cleanEmail,
+        password,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        ensureLocalInitialized();
+        const profiles = readLocal<UserProfile[]>(STORAGE_KEYS.PROFILES, DEFAULT_PROFILES);
+        const idx = profiles.findIndex((p) => p.email.toLowerCase() === cleanEmail);
+        if (idx >= 0) {
+          profiles[idx] = { ...profiles[idx], ...data.user };
+        } else {
+          profiles.push(data.user);
+        }
+        writeLocal(STORAGE_KEYS.PROFILES, profiles);
+        writeLocal(STORAGE_KEYS.ACTIVE_USER, data.user);
+        return data.user as UserProfile;
+      }
+    } else if (res.status === 401 || res.status === 400 || res.status === 429) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Invalid administrator credentials. Please check your password.');
+    }
+  } catch (err) {
+    if (err instanceof Error && (err.message.includes('Invalid administrator credentials') || err.message.includes('Access denied'))) {
+      throw err;
+    }
+    // Network / offline fallback for local standalone development
+  }
+
+  // 2. Offline / local testing fallback
+  return authenticateLocalUser(cleanEmail, password);
+}
+
 export async function sendAuthorityOtp(email: string): Promise<{
   success: boolean;
   expiresAt: number;
@@ -580,13 +651,60 @@ export async function verifyAuthorityOtp(
     throw new Error('Please enter the 6-digit OTP code or Master PIN.');
   }
 
-  // Backup emergency Master PIN override
-  if (cleanCode === HIGHER_AUTHORITY_BACKUP_PIN) {
+  // 1. Production server-side verification via Vercel Serverless Function (/api/authority)
+  try {
+    const res = await fetch('/api/authority', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'verify-otp',
+        email: cleanEmail,
+        otp: cleanCode,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.verified) {
+        localStorage.removeItem('proofbridge_authority_otp_v1');
+        return true;
+      }
+    } else if (res.status === 400 || res.status === 401 || res.status === 429) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Invalid verification code. Please check your Gmail or use your Master PIN.');
+    }
+  } catch (err) {
+    if (err instanceof Error && (err.message.includes('Invalid verification code') || err.message.includes('expired'))) {
+      throw err;
+    }
+    // Network / offline fallback for local dev
+  }
+
+  // 2. Node test environment / offline dev fallback
+  if (isNodeEnv && HIGHER_AUTHORITY_BACKUP_PIN && cleanCode === HIGHER_AUTHORITY_BACKUP_PIN) {
     localStorage.removeItem('proofbridge_authority_otp_v1');
     return true;
   }
 
-  // Check Supabase OTP verification first if cloud is ready
+  // 3. Local storage OTP fallback for offline dev
+  const raw = localStorage.getItem('proofbridge_authority_otp_v1');
+  if (raw) {
+    try {
+      const data = JSON.parse(raw) as StoredOtpData;
+      if (data.email === cleanEmail && data.code === cleanCode) {
+        if (Date.now() > data.expiresAt) {
+          localStorage.removeItem('proofbridge_authority_otp_v1');
+          throw new Error('OTP code has expired. Please request a new one.');
+        }
+        localStorage.removeItem('proofbridge_authority_otp_v1');
+        return true;
+      }
+    } catch (err) {
+      if (err instanceof Error) throw err;
+    }
+  }
+
+  // 4. Supabase cloud OTP verification if configured
   if (isSupabaseConfigured && !isLocalModeForced()) {
     try {
       const { data, error } = await supabase.auth.verifyOtp({
@@ -598,35 +716,10 @@ export async function verifyAuthorityOtp(
         localStorage.removeItem('proofbridge_authority_otp_v1');
         return true;
       }
-    } catch {
-      // Fall through to local payload check
-    }
+    } catch {}
   }
 
-  const raw = localStorage.getItem('proofbridge_authority_otp_v1');
-  if (!raw) {
-    throw new Error('No active OTP found. Please click "Resend OTP Code" or use your Master PIN.');
-  }
-
-  try {
-    const data = JSON.parse(raw) as StoredOtpData;
-    if (data.email !== cleanEmail) {
-      throw new Error('OTP does not match the active account.');
-    }
-    if (Date.now() > data.expiresAt) {
-      localStorage.removeItem('proofbridge_authority_otp_v1');
-      throw new Error('OTP code has expired. Please request a new one or use your Master PIN.');
-    }
-    if (data.code !== cleanCode) {
-      throw new Error('Invalid OTP code. Please check your Gmail inbox and enter the 6-digit code or Master PIN.');
-    }
-
-    localStorage.removeItem('proofbridge_authority_otp_v1');
-    return true;
-  } catch (err) {
-    if (err instanceof Error) throw err;
-    throw new Error('Failed to verify OTP code.');
-  }
+  throw new Error('Invalid verification code. Please check your Gmail or enter your confidential master code.');
 }
 
 export function registerReporterLocalUser(params: {

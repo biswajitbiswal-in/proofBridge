@@ -164,7 +164,7 @@ VITE_AUTHORITY_EMAIL=biswajitbiswal.in@gmail.com
 
 # Server-only secrets (for local Node tests)
 AUTHORITY_PASSWORD=YourStrongPassword
-AUTHORITY_BACKUP_PIN=792026
+AUTHORITY_BACKUP_PIN=000000
 ```
 
 ### 4. Run Automated Test Suite

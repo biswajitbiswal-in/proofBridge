@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🌉 ProofBridge
+<img src="./public/logo.svg" width="80" height="80" alt="ProofBridge Logo" />
+
+# ProofBridge
 ### **From Reported Problems to Verified Outcomes.**
 
 **The modern civic-tech & facility operations platform that eliminates the "closed ticket" illusion.**  

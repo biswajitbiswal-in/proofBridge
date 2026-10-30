@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="./public/logo.svg" width="80" height="80" alt="ProofBridge Logo" />
+<img src="./public/logo.svg" width="96" height="96" alt="ProofBridge Logo" />
 
 # ProofBridge
 ### **From Reported Problems to Verified Outcomes.**
 
-**The modern civic-tech & facility operations platform that eliminates the "closed ticket" illusion.**  
-ProofBridge ensures campus, municipal, and facility repairs are backed by timestamped photographic evidence, transparent audit trails, and human-verified outcomes.
+**An evidence-first civic and campus facility operations platform designed to eliminate the "closed ticket" illusion.**  
+ProofBridge ensures maintenance repairs are backed by compulsory photographic proof, transparent audit logging, and human-verified outcomes.
 
 [![Live Production App](https://img.shields.io/badge/Live_App-proofbridg.vercel.app-FF8A32?style=for-the-badge&logo=vercel&logoColor=white)](https://proofbridg.vercel.app/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -15,119 +15,126 @@ ProofBridge ensures campus, municipal, and facility repairs are backed by timest
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-Cloud_PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
 
-[**🚀 Launch Live Web App**](https://proofbridg.vercel.app/) • [**Explore Features**](#-product-tour--visual-showcase) • [**System Architecture**](#-system-architecture--state-machine) • [**Quick Start**](#-getting-started-locally)
+[**Launch Live Application ↗**](https://proofbridg.vercel.app/) • [**System Architecture**](#-system-architecture--workflow-state-machine) • [**Role Matrix**](#-three-tier-role-separation) • [**Quick Start**](#-getting-started-locally)
 
 </div>
 
 ---
 
-## 📌 The Problem: The "Closed Ticket" Illusion
+## 📌 Executive Overview & The Problem Space
 
-In traditional issue tracking and municipal grievance systems, issues are routinely marked **"Resolved"** the moment a contractor or maintenance team clicks a button—even if the repair was never performed, was executed poorly, or broke down immediately after.
+In traditional municipal grievance and campus facility trackers, issues are routinely marked **"Resolved"** the moment a contractor or technician marks a task done—leaving citizens frustrated when streetlights remain dark, potholes remain unfilled, or repairs fail inspection.
 
-Citizens and students face:
-- ❌ **Lack of Accountability:** Tickets are closed unilaterally with no proof of work.
-- ❌ **Repetitive Complaints:** The same potholes, broken lights, and water leaks get reported repeatedly.
-- ❌ **Broken Trust:** Administrators have zero visibility into whether field teams actually fixed the problem.
+```
+Traditional Ticket Model (Broken):
+[ Report Filed ] ─────────────► [ Ticket Closed (No Proof) ] ──► (Discontent & Repeat Reports)
 
-### 💡 The ProofBridge Solution
-**Claimed Repair ≠ Verified Outcome.**  
-ProofBridge introduces an evidence-first operational pipeline where field staff cannot simply mark an issue resolved. They must submit timestamped before-and-after photographic evidence, and an authorized reviewer must inspect the proof before the issue can transition to `Verified Resolved`.
+ProofBridge Model (Evidence-First):
+[ Citizen Report + Photo ] ──► [ Work Started ] ──► [ Awaiting Verification + Photo Proof ] ──► [ Verified Resolved ]
+```
 
----
-
-## 📸 Product Tour & Visual Showcase
-
-### 1. Public Community Watch & Civic Discovery
-A high-performance editorial landing page featuring real-time civic impact metrics, public issue discovery, category filtering, and one-click reporting.
-
-![ProofBridge Landing Page](./docs/screenshots/landing-hero.png)
+> **The Verification Principle:** *Claimed Repair ≠ Verified Outcome.*  
+> An issue cannot reach `Verified Resolved` without verifiable photographic evidence and human verification by an authorized reviewer.
 
 ---
 
-### 2. Frictionless Citizen Reporting
-Designed for speed and ease: Citizens can submit reports with title, category, priority urgency tags, voice dictation input, specific campus/street location, and photo attachments.
+## 🏛️ The Four Pillars of ProofBridge
 
-![ProofBridge Issue Submission Form](./docs/screenshots/report-form.png)
+### 1. 📸 Compulsory Photographic Proof
+Every repair requires timestamped visual evidence comparing the initial problem against the technician's completed work. Reviews are conducted side-by-side to guarantee quality standards.
 
----
+### 2. 🛡️ Strict Three-Tier Role Separation
+- **Citizen / Reporter:** Submit geocoded issues with voice dictation and photo attachments, track real-time resolution progress, and dispute fraudulent closures.
+- **Maintenance Staff:** Field technician dashboard to claim assignments, log progress updates, and upload completion proof.
+- **Higher Authority Admin:** Multi-step authenticated command center to provision staff accounts, manage SLA queues, and grant final verification sign-offs.
 
-### 3. Operations Command Center & Metric KPIs
-A real-time administrative dashboard grouping issues into active operational buckets: **Open Issues**, **Being Addressed**, **Awaiting Verification**, and **Verified Resolved**, backed by a live audit trail.
+### 3. 🔐 Zero-Leak Serverless Security
+Administrative credential verification and 2-step OTP challenges are isolated entirely on **Vercel Serverless Functions** (`/api/authority`). Passwords, backup PINs, and administrative secrets are never compiled into client JavaScript bundles.
 
-![ProofBridge Operations Command Center](./docs/screenshots/dashboard-command-center.png)
-
----
-
-### 4. Photographic Evidence Review & Side-by-Side Inspection
-Administrators compare the original citizen complaint photo directly against the technician's completed repair photo before granting official sign-off or disputing the repair for rework.
-
-![ProofBridge Evidence Verification Drawer](./docs/screenshots/dashboard-evidence.png)
+### 4. ⚡ 60fps Micro-Interactions & Fluid Design
+Built with modern design aesthetics: GPU-accelerated Tailwind transitions, card elevation hover states, live status radar dots, and smooth drawer workflows—fully compliant with accessibility (`prefers-reduced-motion`) standards.
 
 ---
 
-## ⚡ Key Value Propositions
+## 🔄 System Architecture & Workflow State Machine
 
-| Feature | Citizen Reporter | Maintenance Staff | Higher Authority Admin |
-| :--- | :--- | :--- | :--- |
-| **Account Access** | Public self-registration | Provisioned by Admin | Restricted 2-Step OTP Portal |
-| **Issue Reporting** | Photo + voice input + location | — | Full triage & emergency logging |
-| **Repair Workflow** | Live status tracking & dispute rights | Claim tasks, start work, log notes | Assign tasks & set SLAs |
-| **Evidence Submission** | Initial report photo | Compulsory completion photo | Side-by-side verification |
-| **Verification Authority** | Can dispute fraudulent repairs | Claims repair completion | Final approval or rework order |
-
----
-
-## 🔄 System Architecture & State Machine
-
-ProofBridge enforces an explicit deterministic state machine. No shortcuts or bypassing of stages are permitted.
+ProofBridge enforces an explicit deterministic state machine. Bypassing stages or force-closing issues without verification is architecturally prohibited.
 
 ```mermaid
 stateDiagram-v2
     [*] --> Submitted: Citizen submits report with photo
-    Submitted --> UnderReview: Initial admin triage
-    Submitted --> Assigned: Staff member assigned
+    Submitted --> UnderReview: Initial triage by coordinator
+    Submitted --> Assigned: Direct dispatch to maintenance staff
     UnderReview --> Assigned: Staff member assigned
     
-    Assigned --> InProgress: Technician begins repair
+    Assigned --> InProgress: Technician begins repair work
     InProgress --> AwaitingVerification: Technician uploads completion photo proof
     
     state "Awaiting Verification (Repair Claimed)" as AwaitingVerification
     
-    AwaitingVerification --> VerifiedResolved: Admin verifies photographic evidence
-    AwaitingVerification --> ResolutionDisputed: Admin or Citizen rejects outcome
-    AwaitingVerification --> MoreEvidenceRequired: Reviewer requests clearer photos
+    AwaitingVerification --> VerifiedResolved: Reviewer verifies photographic evidence
+    AwaitingVerification --> ResolutionDisputed: Citizen or Admin rejects repair
+    AwaitingVerification --> MoreEvidenceRequired: Reviewer requests clearer evidence
     
-    ResolutionDisputed --> InProgress: Re-assigned for rework
-    MoreEvidenceRequired --> InProgress: Additional proof captured
+    ResolutionDisputed --> InProgress: Re-opened for technician rework
+    MoreEvidenceRequired --> InProgress: Additional photo evidence submitted
     
-    VerifiedResolved --> [*]: Officially closed with audit trail
-    Submitted --> Canceled: Duplicate or invalid
+    VerifiedResolved --> [*]: Officially resolved with audit trail
+    Submitted --> Canceled: Duplicate or invalid submission
 ```
 
 ---
 
-## 🛡️ Enterprise-Grade Security & Zero Client Leakage
+## 👥 Three-Tier Role Separation
 
-- **Edge Serverless Authority Isolation (`/api/authority`)**:
-  - The Higher Authority Master Portal runs on dedicated **Vercel Serverless Functions**.
-  - Master passwords, backup PINs, and administrative secrets are **never compiled into client JavaScript bundles**.
-- **Cryptographic Timing-Safe Equality**:
-  - Verification calls utilize `crypto.timingSafeEqual` to neutralize timing side-channel attacks.
-- **Built-in Rate Limiting**:
-  - Serverless protection prevents brute-force attempts on administrative 2-Step OTP logins (max 10 attempts/minute per IP).
-- **Row-Level Security (RLS)**:
-  - Supabase PostgreSQL policies strictly restrict update permissions to authorized role IDs.
+| Capability | Citizen Reporter | Maintenance Staff | Higher Authority Admin |
+| :--- | :---: | :---: | :---: |
+| **Account Onboarding** | Public self-registration | Provisioned by Admin | Restricted 2-Step OTP Portal |
+| **Issue Reporting** | Photo + voice input + location | Read-only | Full triage & logging |
+| **Task Claiming** | — | Self-assign / Start work | Dispatch to any staff member |
+| **Evidence Submission** | Initial complaint photo | Compulsory completion proof | Side-by-side inspection |
+| **Dispute Filing** | Can contest false claims | — | Issues rework order |
+| **Final Sign-Off** | — | — | Official Verification Authority |
+
+---
+
+## 🔒 Enterprise-Grade Security Architecture
+
+ProofBridge is engineered with zero-trust architectural boundaries:
+
+```
+┌──────────────────────────────────────┐
+│  Client Application (Vite / React)   │
+│  - Zero administrative secrets       │
+│  - Zero master passwords in bundle   │
+└──────────────────┬───────────────────┘
+                   │ POST /api/authority
+                   ▼
+┌──────────────────────────────────────┐
+│  Vercel Serverless Function Edge     │
+│  - Node.js runtime environment       │
+│  - Server-only process.env secrets   │
+│  - crypto.timingSafeEqual comparison │
+│  - IP-based rate limiting (10/min)   │
+└──────────────────┬───────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────┐
+│  Supabase Cloud (PostgreSQL 15)      │
+│  - Row-Level Security (RLS) policies │
+│  - Encrypted storage buckets         │
+└──────────────────────────────────────┘
+```
 
 ---
 
 ## 💻 Tech Stack & Engineering Standards
 
 - **Frontend Core:** React 18.3, TypeScript 5.7, Vite 6.0
-- **Design System & Styling:** Tailwind CSS 3.4, PostCSS, Lucide React Icons
-- **Backend & Edge:** Vercel Serverless Functions (`/api/authority`), Node.js runtime
-- **Cloud Database & Auth:** Supabase (PostgreSQL 15, GoTrue Auth, Storage Buckets, RLS Policies)
-- **Local Persistence Engine:** Deterministic, self-healing offline local store for dev & offline environments
+- **Styling System:** Tailwind CSS 3.4, PostCSS, Lucide React Icons
+- **Edge Backend:** Vercel Serverless Functions (`/api/authority`) on Node.js runtime
+- **Cloud Database & Auth:** Supabase (PostgreSQL 15, Storage Buckets, GoTrue Auth, Row-Level Security)
+- **Local Persistence Engine:** Deterministic, self-healing local database fallback for development and offline intranets
 - **Quality Assurance:** Unit test suites for state-machine validation and role boundary enforcement
 
 ---
@@ -164,74 +171,62 @@ VITE_AUTHORITY_EMAIL=biswajitbiswal.in@gmail.com
 
 # Server-only secrets (for local Node tests)
 AUTHORITY_PASSWORD=YourStrongPassword
-AUTHORITY_BACKUP_PIN=000000
+AUTHORITY_BACKUP_PIN=Your6DigitPIN
 ```
 
 ### 4. Run Automated Test Suite
 ```bash
 npm test
 ```
-*Executes all state machine assertions, role boundary checks, and OTP verification tests.*
+*Verifies all state machine transitions, role separation boundaries, and OTP authentication flows.*
 
-### 5. Start Local Development Server
+### 5. Launch Development Server
 ```bash
 npm run dev
 ```
-Open your browser at **[http://127.0.0.1:5173/](http://127.0.0.1:5173/)**.
+Open [http://127.0.0.1:5173/](http://127.0.0.1:5173/) in your browser.
 
 ---
 
 ## 🌐 Production Deployment
 
-ProofBridge is optimized for one-click deployment on **Vercel**:
+ProofBridge is configured with [`vercel.json`](./vercel.json) for one-click deployment to **Vercel**:
 
-1. **Push your code to GitHub:**
-   ```bash
-   git push origin main
-   ```
-2. **Import Project on [Vercel](https://vercel.com):**
-   - Framework Preset: **Vite**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-3. **Configure Environment Variables in Vercel:**
-   - **Public:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_AUTHORITY_FULL_NAME`, `VITE_AUTHORITY_EMAIL`
-   - **Server-Only (No `VITE_` prefix):** `AUTHORITY_PASSWORD`, `AUTHORITY_BACKUP_PIN`, `AUTHORITY_EMAIL`, `AUTHORITY_FULL_NAME`
-4. **Live URL:** [https://proofbridg.vercel.app/](https://proofbridg.vercel.app/)
+- **Production URL:** [https://proofbridg.vercel.app/](https://proofbridg.vercel.app/)
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Serverless API Routes:** `/api/authority`
 
 ---
 
-## 📂 Project Structure
+## 📁 Repository Structure
 
 ```text
 proofBridge/
 ├── api/
 │   └── authority.ts               # Vercel Serverless Function (Master Auth & OTP)
 ├── docs/
-│   ├── architecture.md            # Detailed system architecture & RLS specification
+│   ├── architecture.md            # System architecture & database specification
 │   ├── prd.md                     # Product requirements document
-│   └── screenshots/               # Visual product tour showcase
-│       ├── landing-hero.png
-│       ├── report-form.png
-│       ├── dashboard-command-center.png
-│       └── dashboard-evidence.png
+│   └── problemstatement.md       # Problem statement & operational analysis
 ├── src/
 │   ├── components/
-│   │   ├── IssueDetailDrawer.tsx  # Side-by-side evidence inspection drawer
+│   │   ├── IssueDetailDrawer.tsx  # Evidence verification modal drawer
 │   │   ├── ProofBridgeLogo.tsx    # Responsive vector brand emblem
 │   │   └── SecondaryViews.tsx     # Admin Console, Reviews, Timeline & Analytics
 │   ├── lib/
-│   │   └── supabase.ts            # Supabase cloud client & connection watchdog
+│   │   └── supabase.ts            # Supabase cloud client & watchdog
 │   ├── services/
 │   │   └── proofBridgeService.ts  # State machine logic, operations & offline store
 │   ├── types/
 │   │   ├── domain.ts              # Data types, role enums, and status badges
 │   │   ├── stateMachine.test.ts   # State transition unit tests
-│   │   └── authAndRoleSeparation.test.ts # Role separation unit tests
+│   │   └── authAndRoleSeparation.test.ts # Role boundary unit tests
 │   ├── App.tsx                    # Master layout, navigation tabs & views
 │   └── index.css                  # Design tokens, custom animations & keyframes
 ├── supabase/
 │   └── schema.sql                 # PostgreSQL DDL, triggers & RLS policies
-├── vercel.json                    # Single-page application rewrites & caching rules
+├── vercel.json                    # SPA routing rules & immutable caching
 └── package.json
 ```
 
@@ -240,9 +235,9 @@ proofBridge/
 ## 👤 Author & Maintainer
 
 **Biswajit Biswal**  
-- **Live Platform:** [https://proofbridg.vercel.app/](https://proofbridg.vercel.app/)
-- **GitHub:** [@biswajitbiswal-in](https://github.com/biswajitbiswal-in)
-- **Contact:** [biswajitbiswal.in@gmail.com](mailto:biswajitbiswal.in@gmail.com)
+- **Live Application:** [https://proofbridg.vercel.app/](https://proofbridg.vercel.app/)  
+- **GitHub:** [@biswajitbiswal-in](https://github.com/biswajitbiswal-in)  
+- **Email:** [biswajitbiswal.in@gmail.com](mailto:biswajitbiswal.in@gmail.com)
 
 ---
 

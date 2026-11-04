@@ -6,16 +6,16 @@
 ### **From Reported Problems to Verified Outcomes.**
 
 **An evidence-first civic and campus facility operations platform designed to eliminate the "closed ticket" illusion.**  
-ProofBridge ensures maintenance repairs are backed by compulsory photographic proof, transparent audit logging, and human-verified outcomes.
+ProofBridge ensures maintenance repairs are backed by compulsory photographic proof, strict role-based privacy, transparent audit logging, and human-verified outcomes.
 
-[![Live Production App](https://img.shields.io/badge/Live_App-proofbridge-one.vercel.app-FF8A32?style=for-the-badge&logo=vercel&logoColor=white)](https://proofbridge-one.vercel.app/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Live Production App](https://img.shields.io/badge/Live_App-proofbridge--one.vercel.app-FF8A32?style=for-the-badge&logo=vercel&logoColor=white)](https://proofbridge-one.vercel.app/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.4-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-Cloud_PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![MongoDB Atlas](https://img.shields.io/badge/MongoDB_Atlas-Cloud_NoSQL-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
 
-[**Launch Live Application ↗**](https://proofbridge-one.vercel.app/) • [**System Architecture**](#-system-architecture--workflow-state-machine) • [**Role Matrix**](#-three-tier-role-separation) • [**Quick Start**](#-getting-started-locally)
+[**Launch Live Application ↗**](https://proofbridge-one.vercel.app/) • [**System Architecture**](#-system-architecture--workflow-state-machine) • [**Role & Privacy Matrix**](#-role-separation--privacy-boundaries) • [**Quick Start**](#-getting-started-locally)
 
 </div>
 
@@ -25,7 +25,7 @@ ProofBridge ensures maintenance repairs are backed by compulsory photographic pr
 
 In traditional municipal grievance and campus facility trackers, issues are routinely marked **"Resolved"** the moment a contractor or technician marks a task done—leaving citizens frustrated when streetlights remain dark, potholes remain unfilled, or repairs fail inspection.
 
-```
+```text
 Traditional Ticket Model (Broken):
 [ Report Filed ] ─────────────► [ Ticket Closed (No Proof) ] ──► (Discontent & Repeat Reports)
 
@@ -38,21 +38,22 @@ ProofBridge Model (Evidence-First):
 
 ---
 
-## 🏛️ The Four Pillars of ProofBridge
+## 🏛️ Core Pillars of ProofBridge
 
 ### 1. 📸 Compulsory Photographic Proof
-Every repair requires timestamped visual evidence comparing the initial problem against the technician's completed work. Reviews are conducted side-by-side to guarantee quality standards.
+Every repair requires timestamped visual evidence comparing the initial problem against the technician's completed work. Reviews are conducted side-by-side in the verification drawer to guarantee quality standards before closure.
 
-### 2. 🛡️ Strict Three-Tier Role Separation
-- **Citizen / Reporter:** Submit geocoded issues with voice dictation and photo attachments, track real-time resolution progress, and dispute fraudulent closures.
-- **Maintenance Staff:** Field technician dashboard to claim assignments, log progress updates, and upload completion proof.
-- **Higher Authority Admin:** Multi-step authenticated command center to provision staff accounts, manage SLA queues, and grant final verification sign-offs.
+### 2. 🛡️ Strict Role Separation & Reporter Privacy
+- **Citizen / Reporter:** Submit geocoded issues with voice dictation and compressed photo attachments, track real-time resolution progress, and dispute unverified closures. **Strict Privacy Isolation** ensures each reporter only sees issues they personally reported—even after an issue is assigned to maintenance staff.
+- **Maintenance Staff:** Field technician workspace to view all operational issues, claim assignments, log progress updates, and upload completion proof.
+- **Higher Authority & Admin:** Multi-step authenticated command center to provision maintenance staff accounts, grant/revoke admin privileges, manage SLA queues, and grant final verification sign-offs.
 
-### 3. 🔐 Zero-Leak Serverless Security
-Administrative credential verification and 2-step OTP challenges are isolated entirely on **Vercel Serverless Functions** (`/api/authority`). Passwords, backup PINs, and administrative secrets are never compiled into client JavaScript bundles.
+### 3. 🔐 Zero-Leak Serverless & MongoDB Atlas Architecture
+All credential verification, PBKDF2-SHA512 password hashing, 2-step OTP challenges, and database mutations execute inside **Vercel Serverless Functions** (`/api/authority`) backed by **MongoDB Atlas**. Master passwords, backup PINs, HMAC signing keys, and database URIs are never compiled into client JavaScript bundles.
 
-### 4. ⚡ 60fps Micro-Interactions & Fluid Design
-Built with modern design aesthetics: GPU-accelerated Tailwind transitions, card elevation hover states, live status radar dots, and smooth drawer workflows—fully compliant with accessibility (`prefers-reduced-motion`) standards.
+### 4. ⚡ Instant Optimistic UI & Smart Media Compression
+- **Client-Side Canvas Compression:** Uploaded evidence photos are automatically resized and compressed on the client prior to upload, keeping payloads lightweight and responsive.
+- **Non-Blocking Cloud Synchronization:** Issue submissions and workflow transitions update the UI immediately and synchronize asynchronously with MongoDB Atlas.
 
 ---
 
@@ -85,65 +86,69 @@ stateDiagram-v2
 
 ---
 
-## 👥 Three-Tier Role Separation
+## 👥 Role Separation & Privacy Boundaries
 
-| Capability | Citizen Reporter | Maintenance Staff | Higher Authority Admin |
+| Capability | Citizen Reporter | Maintenance Staff | Higher Authority / Admin |
 | :--- | :---: | :---: | :---: |
-| **Account Onboarding** | Public self-registration | Provisioned by Admin | Restricted 2-Step OTP Portal |
-| **Issue Reporting** | Photo + voice input + location | Read-only | Full triage & logging |
-| **Task Claiming** | — | Self-assign / Start work | Dispatch to any staff member |
+| **Account Onboarding** | Self-registration + Cloud sync | Provisioned by Admin | Restricted 2-Step OTP Portal / Admin Grant |
+| **Issue Visibility** | **Own reported issues only** | All active & assigned issues | Full global visibility across all queues |
+| **Issue Reporting** | Photo + voice input + location | Read & operational updates | Full triage, logging & deletion |
+| **Task Assignment** | Preserves original ownership in *My Reports* | Self-assign / Start work | Dispatch to any maintenance staff member |
 | **Evidence Submission** | Initial complaint photo | Compulsory completion proof | Side-by-side inspection |
-| **Dispute Filing** | Can contest false claims | — | Issues rework order |
+| **Dispute Filing** | Can contest false closures | — | Issues rework order |
 | **Final Sign-Off** | — | — | Official Verification Authority |
 
 ---
 
 ## 🔒 Enterprise-Grade Security Architecture
 
-ProofBridge is engineered with zero-trust architectural boundaries:
+ProofBridge is engineered with zero-trust boundaries between the browser and cloud persistence:
 
-```
-┌──────────────────────────────────────┐
-│  Client Application (Vite / React)   │
-│  - Zero administrative secrets       │
-│  - Zero master passwords in bundle   │
-└──────────────────┬───────────────────┘
-                   │ POST /api/authority
-                   ▼
-┌──────────────────────────────────────┐
-│  Vercel Serverless Function Edge     │
-│  - Node.js runtime environment       │
-│  - Server-only process.env secrets   │
-│  - crypto.timingSafeEqual comparison │
-│  - IP-based rate limiting (10/min)   │
-└──────────────────┬───────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────┐
-│  Supabase Cloud (PostgreSQL 15)      │
-│  - Row-Level Security (RLS) policies │
-│  - Encrypted storage buckets         │
-└──────────────────────────────────────┘
+```text
+┌──────────────────────────────────────────────┐
+│  Client Application (React 18 / Vite 6)      │
+│  - Zero plaintext passwords or secret keys   │
+│  - Client-side photo compression             │
+│  - Role-scoped view filtering                │
+└──────────────────────┬───────────────────────┘
+                       │ HTTPS JSON (/api/authority)
+                       ▼
+┌──────────────────────────────────────────────┐
+│  Vercel Serverless Function (api/authority)  │
+│  - Server-only process.env credentials       │
+│  - PBKDF2-SHA512 password hashing            │
+│  - crypto.timingSafeEqual secret comparison  │
+│  - HMAC-SHA256 session tokens & OTP verify   │
+│  - Per-IP rate limiting (15 req / min)       │
+└──────────────────────┬───────────────────────┘
+                       │ TLS Connection Pool
+                       ▼
+┌──────────────────────────────────────────────┐
+│  MongoDB Atlas Cloud (proofbridge DB)        │
+│  - users: Roles, PBKDF2 hashes, permissions  │
+│  - issues: Reports, photos, timeline, proof  │
+│  - challenges: Expiring 2-step OTP records   │
+└──────────────────────────────────────────────┘
 ```
 
 ---
 
-## 💻 Tech Stack & Engineering Standards
+## 💻 Tech Stack
 
-- **Frontend Core:** React 18.3, TypeScript 5.7, Vite 6.0
-- **Styling System:** Tailwind CSS 3.4, PostCSS, Lucide React Icons
-- **Edge Backend:** Vercel Serverless Functions (`/api/authority`) on Node.js runtime
-- **Cloud Database & Auth:** Supabase (PostgreSQL 15, Storage Buckets, GoTrue Auth, Row-Level Security)
-- **Local Persistence Engine:** Deterministic, self-healing local database fallback for development and offline intranets
-- **Quality Assurance:** Unit test suites for state-machine validation and role boundary enforcement
+- **Frontend:** React 18.3, TypeScript 5.8, Vite 6.4
+- **Styling & UI:** Tailwind CSS 3.4, PostCSS, Lucide React Icons
+- **Serverless Backend:** Vercel Functions (`api/authority.ts`) on Node.js runtime
+- **Cloud Database:** MongoDB Atlas (`mongodb` v7 driver with warm serverless connection pooling)
+- **Resilience & Offline Fallback:** Automatic local state hydration when running offline or without cloud credentials
 
 ---
 
 ## 🚀 Getting Started Locally
 
 ### Prerequisites
-- Node.js 18.x or 20.x (LTS recommended)
-- npm or pnpm
+- Node.js 18.x or 20.x+
+- npm 9+
+- A MongoDB Atlas cluster (optional for local offline mode; required for full cloud persistence)
 
 ### 1. Clone the Repository
 ```bash
@@ -156,46 +161,63 @@ cd proofBridge
 npm install
 ```
 
-### 3. Setup Environment Variables
-Create a local `.env` file based on `.env.example`:
+### 3. Configure Environment Variables
+Copy `.env.example` to `.env` and populate your credentials:
 ```bash
 cp .env.example .env
 ```
 
 ```env
-# Client-side configuration
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+# 1. Public Client-Side Variables
 VITE_AUTHORITY_FULL_NAME=Your Full Name
 VITE_AUTHORITY_EMAIL=authority@yourorganization.com
 
-# Server-only secrets (for local Node tests)
-AUTHORITY_PASSWORD=YourStrongPassword
+# 2. Server-Only Secrets (Vercel Serverless Function /api/authority)
+AUTHORITY_FULL_NAME=Your Full Name
+AUTHORITY_EMAIL=authority@yourorganization.com
+AUTHORITY_PASSWORD=YourStrongMasterPassword
 AUTHORITY_BACKUP_PIN=Your6DigitPIN
+AUTHORITY_SECRET_KEY=YourRandomHmacSigningSecret
+
+# 3. Default Role Account Credentials (Server-Only)
+ADMIN_FULL_NAME=Campus Coordinator
+ADMIN_EMAIL=admin@yourorganization.com
+ADMIN_PASSWORD=YourStrongAdminPassword
+
+STAFF_FULL_NAME=Field Technician
+STAFF_EMAIL=staff@yourorganization.com
+STAFF_PASSWORD=YourStrongStaffPassword
+
+REPORTER_FULL_NAME=Citizen Reporter
+REPORTER_EMAIL=reporter@yourorganization.com
+REPORTER_PASSWORD=YourStrongReporterPassword
+
+# 4. MongoDB Atlas Cloud Database (Server-Only)
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority&appName=proofBridge
+MONGODB_DB=proofbridge
 ```
 
-### 4. Run Automated Test Suite
-```bash
-npm test
-```
-*Verifies all state machine transitions, role separation boundaries, and OTP authentication flows.*
-
-### 5. Launch Development Server
+### 4. Start the Development Server
 ```bash
 npm run dev
 ```
-Open [http://127.0.0.1:5173/](http://127.0.0.1:5173/) in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### 5. Build for Production
+```bash
+npm run build
+```
 
 ---
 
 ## 🌐 Production Deployment
 
-ProofBridge is configured with [`vercel.json`](./vercel.json) for one-click deployment to **Vercel**:
+ProofBridge is pre-configured with [`vercel.json`](./vercel.json) for deployment on **Vercel**:
 
-- **Production URL:** [https://proofbridge-one.vercel.app/](https://proofbridge-one.vercel.app/)
+- **Live Production URL:** [https://proofbridge-one.vercel.app/](https://proofbridge-one.vercel.app/)
 - **Build Command:** `npm run build`
 - **Output Directory:** `dist`
-- **Serverless API Routes:** `/api/authority`
+- **Serverless API Endpoint:** `/api/authority`
 
 ---
 
@@ -204,29 +226,27 @@ ProofBridge is configured with [`vercel.json`](./vercel.json) for one-click depl
 ```text
 proofBridge/
 ├── api/
-│   └── authority.ts               # Vercel Serverless Function (Master Auth & OTP)
+│   └── authority.ts                  # Vercel Serverless API (Auth, OTP, Users & Issues CRUD)
 ├── docs/
-│   ├── architecture.md            # System architecture & database specification
-│   ├── prd.md                     # Product requirements document
-│   └── problemstatement.md       # Problem statement & operational analysis
+│   ├── architecture.md               # System architecture & workflow specification
+│   ├── prd.md                        # Product requirements document
+│   └── problemstatement.md           # Problem statement & operational analysis
+├── public/
+│   └── logo.svg                      # ProofBridge vector brand emblem
 ├── src/
 │   ├── components/
-│   │   ├── IssueDetailDrawer.tsx  # Evidence verification modal drawer
-│   │   ├── ProofBridgeLogo.tsx    # Responsive vector brand emblem
-│   │   └── SecondaryViews.tsx     # Admin Console, Reviews, Timeline & Analytics
-│   ├── lib/
-│   │   └── supabase.ts            # Supabase cloud client & watchdog
+│   │   ├── IssueDetailDrawer.tsx     # Side-by-side photo proof & verification drawer
+│   │   ├── ProofBridgeLogo.tsx       # Responsive SVG brand component
+│   │   └── SecondaryViews.tsx        # Verification Queue, Disputes, SLA, Audit & Admin views
 │   ├── services/
-│   │   └── proofBridgeService.ts  # State machine logic, operations & offline store
+│   │   └── proofBridgeService.ts     # State machine, cloud sync client & role persistence
 │   ├── types/
-│   │   ├── domain.ts              # Data types, role enums, and status badges
-│   │   ├── stateMachine.test.ts   # State transition unit tests
-│   │   └── authAndRoleSeparation.test.ts # Role boundary unit tests
-│   ├── App.tsx                    # Master layout, navigation tabs & views
-│   └── index.css                  # Design tokens, custom animations & keyframes
-├── supabase/
-│   └── schema.sql                 # PostgreSQL DDL, triggers & RLS policies
-├── vercel.json                    # SPA routing rules & immutable caching
+│   │   └── domain.ts                 # Core TypeScript interfaces, status & role definitions
+│   ├── App.tsx                       # Main application shell, role portals & issue workflows
+│   ├── index.css                     # Tailwind CSS layers & micro-interaction animations
+│   └── main.tsx                      # React DOM entry point
+├── .env.example                      # Safe template for required environment variables
+├── vercel.json                       # Vercel routing & security headers configuration
 └── package.json
 ```
 
@@ -235,7 +255,6 @@ proofBridge/
 ## 👤 Author & Maintainer
 
 **Biswajit Biswal**  
-- **Live Application:** [https://proofbridge-one.vercel.app/](https://proofbridge-one.vercel.app/)  
 - **GitHub:** [@biswajitbiswal-in](https://github.com/biswajitbiswal-in)  
 - **Live Production:** [https://proofbridge-one.vercel.app](https://proofbridge-one.vercel.app)
 
@@ -243,4 +262,4 @@ proofBridge/
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
+This project is available for educational and civic innovation use under the **MIT License**.

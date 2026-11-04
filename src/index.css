@@ -1,0 +1,303 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Editorial Minimalist Civic-Tech Palette */
+  --color-background: #111318;
+  --color-sidebar: #14171E;
+  --color-card: #1C2028;
+  --color-card-hover: #222731;
+  --color-elevated: #222731;
+  --color-input: #14171E;
+
+  /* Brand and Interactions */
+  --color-primary: #FF8A32;
+  --color-primary-hover: #FF9E54;
+  --color-primary-muted: rgba(255, 138, 50, 0.12);
+  --color-accent: #FF8A32;
+
+  /* Text */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #A1A1AA;
+  --color-text-muted: #71717A;
+
+  /* Borders */
+  --color-border: #2B303A;
+  --color-border-hover: #3B4250;
+
+  /* Semantic Status Colors */
+  --color-success: #22C55E;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+  --color-info: #60A5FA;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: clamp(14px, 1.5vw, 15px);
+    line-height: 1.6;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  *:focus-visible {
+    outline: 1.5px solid #FF8A32;
+    outline-offset: 2px;
+  }
+}
+
+/* Reusable Editorial Typographic System */
+@layer components {
+  .pb-eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+  }
+
+  .pb-display-hero {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    word-spacing: 0.08em;
+    line-height: 1.12;
+  }
+
+  .pb-display-section {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    word-spacing: 0.06em;
+    line-height: 1.14;
+  }
+
+  .pb-stat-number {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ========================================================================== */
+/* ProofBridge Civic Animation System                                         */
+/* ========================================================================== */
+@keyframes pbFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pbFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pbScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pbSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pbPulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 138, 50, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(255, 138, 50, 0.22);
+  }
+}
+
+@keyframes pbBadgePulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    transform: scale(1.4);
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+@keyframes pbFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pbShimmerGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-fade-in {
+  animation: pbFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-up {
+  animation: pbFadeInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: pbScaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: pbSlideInRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-pulse-glow {
+  animation: pbPulseGlow 3.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: pbFloat 5s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: pbShimmerGradient 6s ease infinite;
+}
+
+.stagger-1 {
+  animation-delay: 0.08s;
+}
+.stagger-2 {
+  animation-delay: 0.16s;
+}
+.stagger-3 {
+  animation-delay: 0.24s;
+}
+.stagger-4 {
+  animation-delay: 0.32s;
+}
+.stagger-5 {
+  animation-delay: 0.40s;
+}
+
+.card-hover {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 138, 50, 0.45);
+  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.5), 0 0 16px -2px rgba(255, 138, 50, 0.1);
+}
+
+.btn-interact {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
+}
+.btn-interact:hover {
+  transform: translateY(-1px);
+}
+.btn-interact:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.live-pulse-dot {
+  position: relative;
+}
+.live-pulse-dot::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 9999px;
+  background: inherit;
+  opacity: 0.75;
+  animation: pbBadgePulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111318;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2B303A;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3B4250;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1314,7 +1314,7 @@ export default function App() {
     <>
       {!bootComplete && (
         <ProofBridgeBootScreen
-          minimumDurationMs={1150}
+          minimumDurationMs={3100}
           onComplete={() => setBootComplete(true)}
         />
       )}
@@ -1332,15 +1332,11 @@ export default function App() {
       />
       <ActionLoaderOverlay
         active={authBusy || reportSubmitting}
-        title={
-          authBusy
-            ? 'Authenticating & Verifying Role Access'
-            : 'Compressing Evidence & Locking Report'
-        }
+        title={authBusy ? 'Signing you in...' : 'Submitting your report...'}
         subtitle={
           authBusy
-            ? 'Performing zero-trust PBKDF2-SHA512 verification against the ProofBridge cloud ledger...'
-            : 'Generating cryptographic audit entry and syncing photographic proof...'
+            ? 'Opening your workspace...'
+            : 'Attaching your photo and saving your report...'
         }
       />
     </>

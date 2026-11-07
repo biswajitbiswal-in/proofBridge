@@ -16,6 +16,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { DrawerSkeletonLoader } from './ProofBridgeLoader';
 import {
   CATEGORY_LABELS,
   Issue,
@@ -181,6 +182,8 @@ export function IssueDetailDrawer({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {(detailLoading || !detailIssue) && <DrawerSkeletonLoader />}
 
         {detailIssue && !detailLoading && (
           <div className="p-6 space-y-6 divide-y divide-pb-border">

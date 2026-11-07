@@ -291,6 +291,130 @@
   background: #3B4250;
 }
 
+
+/* ========================================================================== */
+/* ProofBridge Signature Orbital & Laser Loading Animations                   */
+/* ========================================================================== */
+@keyframes pbOrbitCW {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pbOrbitCCW {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes pbLaserScan {
+  0% {
+    top: -25%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+@keyframes pbCoreBreathe {
+  0%, 100% {
+    transform: scale(0.92);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
+  }
+}
+
+@keyframes pbShimmerSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes pbTopLaser {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@keyframes pbPiecePulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px rgba(255, 138, 50, 0));
+    opacity: 0.92;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(255, 138, 50, 0.55));
+    opacity: 1;
+  }
+}
+
+.animate-pb-orbit-cw {
+  animation: pbOrbitCW 7s linear infinite;
+}
+
+.animate-pb-orbit-ccw {
+  animation: pbOrbitCCW 5s linear infinite;
+}
+
+.animate-pb-laser-scan {
+  animation: pbLaserScan 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-pb-core-breathe {
+  animation: pbCoreBreathe 3.2s ease-in-out infinite;
+}
+
+.animate-pb-core-breathe-delayed {
+  animation: pbCoreBreathe 3.2s ease-in-out 1.6s infinite;
+}
+
+.animate-pb-emblem-float {
+  animation: pbFloat 3.6s ease-in-out infinite;
+}
+
+.animate-pb-shimmer-sweep {
+  animation: pbShimmerSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-pb-top-laser {
+  animation: pbTopLaser 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-pb-piece-1 {
+  animation: pbPiecePulse 2.4s ease-in-out 0s infinite;
+}
+.animate-pb-piece-2 {
+  animation: pbPiecePulse 2.4s ease-in-out 0.3s infinite;
+}
+.animate-pb-piece-3 {
+  animation: pbPiecePulse 2.4s ease-in-out 0.6s infinite;
+}
+.animate-pb-piece-4 {
+  animation: pbPiecePulse 2.4s ease-in-out 0.9s infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

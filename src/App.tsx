@@ -39,6 +39,11 @@ import {
 } from 'lucide-react';
 import { ProofBridgeLogo, ProofBridgeMark } from './components/ProofBridgeLogo';
 import {
+  ActionLoaderOverlay,
+  ProofBridgeBootScreen,
+  TopSyncLaserBar,
+} from './components/ProofBridgeLoader';
+import {
   adminAssignUserRole,
   assignIssueToStaff,
   authenticateUser,
@@ -190,6 +195,7 @@ export default function App() {
     Array<IssueEvent & { issueCode?: string; issueTitle?: string }>
   >(initialCache.events);
   const [loadingIssues, setLoadingIssues] = useState(false);
+  const [bootComplete, setBootComplete] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>(() => {
     const savedTab = localStorage.getItem(TAB_CACHE_KEY) as NavTab | null;
     return savedTab && savedTab in PAGE_TITLES ? savedTab : 'dashboard';
@@ -1302,7 +1308,43 @@ export default function App() {
     recognition.start();
   }
 
-  const isCloudActive = false;
+  const isCloudActive = true;
+
+  const globalLoadingOverlays = (
+    <>
+      {!bootComplete && (
+        <ProofBridgeBootScreen
+          minimumDurationMs={1150}
+          onComplete={() => setBootComplete(true)}
+        />
+      )}
+      <TopSyncLaserBar
+        active={loadingIssues || authBusy || reportSubmitting || actionBusy}
+        label={
+          authBusy
+            ? 'AUTHENTICATING CREDENTIALS'
+            : reportSubmitting
+            ? 'LOCKING EVIDENCE TO LEDGER'
+            : actionBusy
+            ? 'RECORDING VERIFICATION'
+            : 'SYNCING CLOUD LEDGER'
+        }
+      />
+      <ActionLoaderOverlay
+        active={authBusy || reportSubmitting}
+        title={
+          authBusy
+            ? 'Authenticating & Verifying Role Access'
+            : 'Compressing Evidence & Locking Report'
+        }
+        subtitle={
+          authBusy
+            ? 'Performing zero-trust PBKDF2-SHA512 verification against the ProofBridge cloud ledger...'
+            : 'Generating cryptographic audit entry and syncing photographic proof...'
+        }
+      />
+    </>
+  );
 
   // ===========================================================================
   // STAGE 1: PUBLIC EDITORIAL LANDING PAGE (No internal dashboard exposed)
@@ -1310,6 +1352,7 @@ export default function App() {
   if (stage === 'landing') {
     return (
       <div className="min-h-screen flex flex-col bg-[#111318] text-[#F5F5F5] selection:bg-[#FF8A32]/30 overflow-x-hidden">
+        {globalLoadingOverlays}
         {toast && (
           <div
             className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 max-w-md px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2.5 animate-slide-in-right shadow-2xl ${
@@ -1947,6 +1990,7 @@ export default function App() {
   if (stage === 'authority-login') {
     return (
       <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10 animate-fade-in">
+        {globalLoadingOverlays}
         {toast && (
           <div
             className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 animate-slide-in-right shadow-2xl ${
@@ -2146,6 +2190,7 @@ export default function App() {
   if (stage === 'auth' || !profile) {
     return (
       <div className="min-h-screen bg-[#111318] text-[#F5F5F5] flex flex-col justify-between p-6 sm:p-10 animate-fade-in">
+        {globalLoadingOverlays}
         {toast && (
           <div
             className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-control bg-[#1C2028] border text-xs font-medium flex items-center gap-2 animate-slide-in-right shadow-2xl ${
@@ -2456,6 +2501,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex bg-[#111318] text-[#F5F5F5]">
+      {globalLoadingOverlays}
       {/* Toast Notification */}
       {toast && (
         <div
